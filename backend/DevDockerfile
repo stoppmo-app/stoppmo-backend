@@ -1,3 +1,4 @@
+# N.B.: Jammy is a specific Ubuntu version
 FROM swift:6.0-jammy AS swift
 
 # Install OS updates
@@ -8,25 +9,18 @@ RUN export DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true \
     && apt-get install -y nodejs \
     && apt-get install -y npm 
 
+# Install nodemon (used for hot reloading)
 RUN npm install -g nodemon
 
-RUN node -v
-RUN npm -v
-RUN nodemon -v
-
-FROM swift AS setup-environment-development
-
-# RUN git clone https://github.com/jakeheis/Ice \
-#   && cd Ice \
-#   && swift build -c release \
-#   && install .build/release/ice /usr/bin
-
-# Switch to the new home directory
 WORKDIR /app
 
 EXPOSE 8080
 
-# CMD ["nodemon", "-w", "./", "-e", '"swift"' "--exec", '"swift build ; swift run App"']
-# CMD ["nodemon", "-w", "./", "-e", "swift", "--exec", "'swift build ; swift run App'"]
-# CMD /bin/bash -c "nodemon -w ./ --ignore ./.build -e swift --exec 'swift run App serve --env development'"
-# CMD sleep 9000s
+# 1. Build app
+# 2. Hot reload application
+#    - Watch the current directory ("-w ./")
+#    - Only watch for files with ".swift" extentsion ("-e swift")
+#    - Ignore build so that it does not hot reload recursively ("--ignore ./.build")
+#    - Specify execution command, it will stop the app and rerun this command each time something changes ("'swift run App serve --hostname 0.0.0.0 --port 8080'")
+
+CMD /bin/bash -c "swift build && nodemon -w ./ -e swift --ignore ./.build --exec 'swift run App serve --hostname 0.0.0.0 --port 8080'"

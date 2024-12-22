@@ -41,9 +41,6 @@ services:
         condition: service_healthy
     ports:
       - '8080:8080'
-    # command: ["/usr/bin/ice run --watch"]
-    # command: ["swift run App"]
-    # command: ["echo hello"]
   app:
     image: backend:latest
     build:
