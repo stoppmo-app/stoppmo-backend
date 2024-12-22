@@ -1,0 +1,32 @@
+FROM swift:6.0-jammy AS swift
+
+# Install OS updates
+RUN export DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true \
+    && apt-get -q update \
+    && apt-get -q dist-upgrade -y \
+    && apt-get install -y libjemalloc-dev \
+    && apt-get install -y nodejs \
+    && apt-get install -y npm 
+
+RUN npm install -g nodemon
+
+RUN node -v
+RUN npm -v
+RUN nodemon -v
+
+FROM swift AS setup-environment-development
+
+# RUN git clone https://github.com/jakeheis/Ice \
+#   && cd Ice \
+#   && swift build -c release \
+#   && install .build/release/ice /usr/bin
+
+# Switch to the new home directory
+WORKDIR /app
+
+EXPOSE 8080
+
+# CMD ["nodemon", "-w", "./", "-e", '"swift"' "--exec", '"swift build ; swift run App"']
+# CMD ["nodemon", "-w", "./", "-e", "swift", "--exec", "'swift build ; swift run App'"]
+# CMD /bin/bash -c "nodemon -w ./ --ignore ./.build -e swift --exec 'swift run App serve --env development'"
+# CMD sleep 9000s
