@@ -23,6 +23,12 @@ final class User: Model, @unchecked Sendable {
     @Field(key: "password")
     var password: String
 
+    @Enum(key: "user_role")
+    var userRole: UserRole
+
+    @Children(for: \.$user)
+    var badgesHistory: [UserBadge]
+
     // When this Planet was created.
     @Timestamp(key: "created_at", on: .create)
     var createdAt: Date?
@@ -31,23 +37,34 @@ final class User: Model, @unchecked Sendable {
     @Timestamp(key: "updated_at", on: .update)
     var updatedAt: Date?
 
-    @Enum(key: "user_role")
-    var userRole: UserRole
-
-    @Children(for: \.$user)
-    var badgesHistory: [UserBadge]
 
     init() { }
 
-    init(id: UUID? = nil, title: String) {
+    init(
+        id: UUID? = nil,
+        name: String,
+        surname: String,
+        username: String,
+        password: String,
+        userRole: UserRole
+    ) {
         self.id = id
-        self.title = title
+        self.name = name
+        self.surname = surname
+        self.username = username
+        self.password = password
+        self.userRole = userRole
+
     }
     
-    func toDTO() -> TodoDTO {
+    func toDTO() -> UserDTO {
         .init(
             id: self.id,
-            title: self.$title.value
+            name: self.$name.value,
+            surname: self.$surname.value,
+            username: self.$username.value,
+            password: self.$password.value,
+            userRole: self.$userRole.value
         )
     }
 }

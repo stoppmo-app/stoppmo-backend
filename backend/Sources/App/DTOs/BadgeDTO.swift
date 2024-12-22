@@ -20,6 +20,7 @@ struct BadgeDTO: Content {
         if let unlockAfterXDays = self.unlockAfterXDays {
             model.unlockAfterXDays = unlockAfterXDays
         }
+
         return model
     }
 }

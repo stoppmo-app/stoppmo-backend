@@ -7,8 +7,8 @@ final class UserBadge: Model, @unchecked Sendable {
     @ID(key: .id)
     var id: UUID?
 
-    @Timestamp(key: "started_at", on: .none)
-    var startedAt: Date?
+    @Field(key: "started_at")
+    var startedAt: Date
 
     @Timestamp(key: "created_at", on: .create)
     var createdAt: Date?
@@ -17,22 +17,31 @@ final class UserBadge: Model, @unchecked Sendable {
     var updatedAt: Date?
 
     @Parent(key: "badge_id")
-    var badge: [Badge]
+    var badge: Badge
 
     @Parent(key: "user_id")
-    var user: [User]
+    var user: User
 
     init() { }
 
-    init(id: UUID? = nil, title: String) {
+    init(
+        id: UUID? = nil,
+        startedAt: Date,
+        badgeID: Badge.IDValue,
+        userID: User.IDValue
+    ) {
         self.id = id
-        self.title = title
+        self.startedAt = startedAt
+        self.$user.id = userID
+        self.$badge.id = badgeID
     }
     
-    func toDTO() -> TodoDTO {
+    func toDTO() -> UserBadgeDTO {
         .init(
             id: self.id,
-            title: self.$title.value
+            startedAt: self.startedAt,
+            badgeID: self.$badge.$id.value,
+            userID: self.$user.$id.value
         )
     }
 }
