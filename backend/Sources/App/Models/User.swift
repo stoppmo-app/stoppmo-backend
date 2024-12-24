@@ -29,11 +29,9 @@ final class User: Model, @unchecked Sendable {
     @Children(for: \.$user)
     var badgesHistory: [UserBadge]
 
-    // When this Planet was created.
     @Timestamp(key: "created_at", on: .create)
     var createdAt: Date?
 
-    // When this Planet was last updated.
     @Timestamp(key: "updated_at", on: .update)
     var updatedAt: Date?
 

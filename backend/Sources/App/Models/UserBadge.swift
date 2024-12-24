@@ -10,17 +10,17 @@ final class UserBadge: Model, @unchecked Sendable {
     @Field(key: "started_at")
     var startedAt: Date
 
-    @Timestamp(key: "created_at", on: .create)
-    var createdAt: Date?
-
-    @Timestamp(key: "updated_at", on: .update)
-    var updatedAt: Date?
-
     @Parent(key: "badge_id")
     var badge: Badge
 
     @Parent(key: "user_id")
     var user: User
+
+    @Timestamp(key: "created_at", on: .create)
+    var createdAt: Date?
+
+    @Timestamp(key: "updated_at", on: .update)
+    var updatedAt: Date?
 
     init() { }
 
