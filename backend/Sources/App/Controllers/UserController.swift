@@ -11,7 +11,7 @@ struct UserController: RouteCollection {
         users.group(":userID") { user in
             user.get(use: self.getUserInfo)
             user.delete(use: self.deleteUser)
-            user.put(use: self.updateUser)
+            user.patch(use: self.updateUser)
         }
     }
 
