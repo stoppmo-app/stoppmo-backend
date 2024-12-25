@@ -70,7 +70,7 @@ final class User: Model, @unchecked Sendable {
     }
 
     func toDTO() -> UserDTO.GetUser {
-        return UserDTO.GetUser(
+        return .init(
             firstName: self.firstName,
             lastName: self.lastName,
             username: self.username,
@@ -81,7 +81,7 @@ final class User: Model, @unchecked Sendable {
     }
 
     static func fromDTO(_ dto: UserDTO.CreateUser) -> User {
-        return User(
+        return .init(
             firstName: dto.firstName,
             lastName: dto.lastName,
             username: dto.username,

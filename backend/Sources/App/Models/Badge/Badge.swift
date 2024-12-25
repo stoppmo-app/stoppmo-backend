@@ -35,4 +35,8 @@ final class Badge: Model, @unchecked Sendable {
         self.description = description
         self.unlockAfterXDays = unlockAfterXDays
     }
+
+    func toDTO() -> BadgeDTO.GetBadge {
+        return .init(name: self.name, description: self.description, unlockAfterXDays: self.unlockAfterXDays)
+    }
 }
