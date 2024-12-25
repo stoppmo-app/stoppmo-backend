@@ -19,6 +19,9 @@ final class Badge: Model, @unchecked Sendable {
     @Timestamp(key: "created_at", on: .create)
     var createdAt: Date?
 
+    @Timestamp(key: "updated_at", on: .update)
+    var updatedAt: Date?
+
     init() { }
 
     init(
@@ -31,5 +34,9 @@ final class Badge: Model, @unchecked Sendable {
         self.name = name
         self.description = description
         self.unlockAfterXDays = unlockAfterXDays
+    }
+
+    func toDTO() -> BadgeDTO.GetBadge {
+        return .init(name: self.name, description: self.description, unlockAfterXDays: self.unlockAfterXDays)
     }
 }
