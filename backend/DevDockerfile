@@ -3,11 +3,7 @@
 #   - Change "CURRENT_ENVIRONMENT" variable in ".env" to change the environment in the development container
 FROM swift:6.0-jammy AS swift
 
-# TODO: have argument "use_production_build"
-#   - If this argument is set to 1, it will use something like following for building only if "CURRENT_ENVIRONMENT" is set to "production":
-#   "RUN swift build -c release --static-swift-stdlib -Xlinker -ljemalloc"
-
-# Install OS updates
+# Install OS updates and required binaries
 RUN export DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true \
     && apt-get -q update \
     && apt-get -q dist-upgrade -y \
@@ -29,4 +25,4 @@ EXPOSE 8080
 #    - Ignore build so that it does not hot reload recursively ("--ignore ./.build")
 #    - Specify execution command, it will stop the app and rerun this command each time something changes ("'swift run App serve --hostname 0.0.0.0 --port 8080'")
 
-CMD /bin/bash -c "swift build && nodemon -w ./ -e swift --ignore ./.build --exec 'swift run App serve --env $CURRENT_ENVIRONMENT --hostname 0.0.0.0 --port 8080'"
+CMD bash -c "nodemon -w ./ -w .env -e '.' --ignore ./.build --exec 'swift run App serve --env $CURRENT_ENVIRONMENT --hostname 0.0.0.0 --port 8080'"
