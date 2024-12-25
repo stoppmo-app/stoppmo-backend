@@ -1,7 +1,7 @@
 import Fluent
 import Foundation
 
-enum UserRole: String, Codable {
+enum Role: String, Codable {
     case admin, member
 }
 
@@ -11,11 +11,11 @@ final class User: Model, @unchecked Sendable {
     @ID(key: .id)
     var id: UUID?
 
-    @Field(key: "name")
-    var name: String
+    @Field(key: "first_name")
+    var firstName: String
 
-    @Field(key: "surname")
-    var surname: String
+    @Field(key: "last_name")
+    var lastName: String
 
     @Field(key: "username")
     var username: String
@@ -23,8 +23,20 @@ final class User: Model, @unchecked Sendable {
     @Field(key: "password")
     var password: String
 
-    @Enum(key: "user_role")
-    var userRole: UserRole
+    @Enum(key: "role")
+    var role: Role
+
+    @Field(key: "profile_picture_url")
+    var profilePictureURL: String
+
+    @Field(key: "bio")
+    var bio: String
+
+    @Field(key: "phone_number")
+    var phoneNumber: String
+
+    @Field(key: "date_of_birth")
+    var dateOfBirth: Date
 
     @Children(for: \.$user)
     var badgesHistory: [UserBadge]
@@ -44,25 +56,21 @@ final class User: Model, @unchecked Sendable {
         surname: String,
         username: String,
         password: String,
-        userRole: UserRole
+        role: Role,
+        profilePictureURL: String,
+        bio: String,
+        phoneNumber: String,
+        dateOfBirth: Date
     ) {
         self.id = id
-        self.name = name
-        self.surname = surname
+        self.firstName = name
+        self.lastName = surname
         self.username = username
         self.password = password
-        self.userRole = userRole
-
-    }
-    
-    func toDTO() -> UserDTO {
-        .init(
-            id: self.id,
-            name: self.$name.value,
-            surname: self.$surname.value,
-            username: self.$username.value,
-            password: self.$password.value,
-            userRole: self.$userRole.value
-        )
+        self.role = role
+        self.profilePictureURL = profilePictureURL
+        self.bio = bio
+        self.phoneNumber = phoneNumber
+        self.dateOfBirth = dateOfBirth
     }
 }

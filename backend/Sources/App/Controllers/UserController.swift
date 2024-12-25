@@ -16,24 +16,24 @@ struct UserController: RouteCollection {
     }
 
     @Sendable
-    func getAllUsers(req: Request) async throws -> [UserDTO] {
-        try await User.query(on: req.db).all().map { $0.toDTO() }
+    func getAllUsers(req: Request) async throws -> [UserDTOs.GetUser] {
+        try await User.query(on: req.db).all().map { $0.toDTO(.get) }
     }
 
     @Sendable
-    func create(req: Request) async throws -> UserDTO {
-        let user = try req.content.decode(UserDTO.self).toModel()
+    func create(req: Request) async throws -> UserDTOs.GetUser {
+        let user = try req.content.decode(UserDTOs.CreateUser.self).toModel()
 
         try await user.save(on: req.db)
-        return user.toDTO()
+        return user.toDTO(.get)
     }
 
     @Sendable
-    func getUserInfo(req: Request) async throws -> UserDTO {
+    func getUserInfo(req: Request) async throws -> UserDTOs.GetUser {
         guard let user = try await User.find(req.parameters.get("userID"), on: req.db) else {
             throw Abort(.notFound)
         }
-        return user.toDTO()
+        return user.toDTO(.get)
     }
 
     @Sendable
@@ -47,16 +47,16 @@ struct UserController: RouteCollection {
     }
 
     @Sendable
-    func updateUser(req: Request) async throws -> UserDTO {
-        let updatedUser = try req.content.decode(UserDTO.self)
+    func updateUser(req: Request) async throws -> UserDTOs.GetUser {
+        let updatedUser = try req.content.decode(UserDTOs.UpdateUser.self)
         guard let user = try await User.find(req.parameters.get("userID"), on: req.db) else {
             throw Abort(.notFound)
         }
 
-        user.name = updatedUser.name ?? user.name
-        user.surname = updatedUser.surname ?? user.surname
+        user.firstName = updatedUser.firstName ?? user.name
+        user.lastName = updatedUser.lastName ?? user.surname
         user.password = updatedUser.password ?? user.password
-        user.userRole = updatedUser.userRole ?? user.userRole
+        user.role = updatedUser.role ?? user.role
 
         try await user.update(on: req.db)
         return user.toDTO()

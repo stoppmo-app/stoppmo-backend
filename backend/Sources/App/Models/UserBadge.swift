@@ -35,13 +35,4 @@ final class UserBadge: Model, @unchecked Sendable {
         self.$user.id = userID
         self.$badge.id = badgeID
     }
-    
-    func toDTO() -> UserBadgeDTO {
-        .init(
-            id: self.id,
-            startedAt: self.startedAt,
-            badgeID: self.$badge.$id.value,
-            userID: self.$user.$id.value
-        )
-    }
 }

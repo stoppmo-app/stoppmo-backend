@@ -2,14 +2,18 @@ import Fluent
 
 struct CreateUser: AsyncMigration {
     func prepare(on database: Database) async throws {
-        let userRole : DatabaseSchema.DataType.Enum = .init(name: "UserRole", cases: ["admin, member"])
+        let role = try await database.enum("user_role")
+            .case("member")
+            .case("admin")
+            .create()
 
         try await database.schema("users")
             .id()
             .field("name", .string, .required)
             .field("surname", .string, .required)
+            .field("username", .string, .required)
             .field("password", .string, .required)
-            .field("user_role", .enum(userRole), .required)
+            .field("role", role, .required)
             .field("created_at", .string, .required)
             .field("updated_at", .string)
             .create()
