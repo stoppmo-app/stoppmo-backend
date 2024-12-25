@@ -1,5 +1,6 @@
 import Fluent
 import Foundation
+import Vapor
 
 enum Role: String, Codable {
     case admin, member
@@ -7,7 +8,7 @@ enum Role: String, Codable {
 
 final class User: Model, @unchecked Sendable {
     static let schema = "users"
-    
+
     @ID(key: .id)
     var id: UUID?
 
@@ -19,9 +20,6 @@ final class User: Model, @unchecked Sendable {
 
     @Field(key: "username")
     var username: String
-
-    @Field(key: "password")
-    var password: String
 
     @Enum(key: "role")
     var role: Role
@@ -47,15 +45,13 @@ final class User: Model, @unchecked Sendable {
     @Timestamp(key: "updated_at", on: .update)
     var updatedAt: Date?
 
-
-    init() { }
+    init() {}
 
     init(
         id: UUID? = nil,
-        name: String,
-        surname: String,
+        firstName: String,
+        lastName: String,
         username: String,
-        password: String,
         role: Role,
         profilePictureURL: String,
         bio: String,
@@ -63,14 +59,37 @@ final class User: Model, @unchecked Sendable {
         dateOfBirth: Date
     ) {
         self.id = id
-        self.firstName = name
-        self.lastName = surname
+        self.firstName = firstName
+        self.lastName = lastName
         self.username = username
-        self.password = password
         self.role = role
         self.profilePictureURL = profilePictureURL
         self.bio = bio
         self.phoneNumber = phoneNumber
         self.dateOfBirth = dateOfBirth
+    }
+
+    func toDTO() -> UserDTO.GetUser {
+        return UserDTO.GetUser(
+            firstName: self.firstName,
+            lastName: self.lastName,
+            username: self.username,
+            profilePictureURL: self.profilePictureURL,
+            bio: self.bio,
+            dateOfBirth: self.dateOfBirth
+        )
+    }
+
+    static func fromDTO(_ dto: UserDTO.CreateUser) -> User {
+        return User(
+            firstName: dto.firstName,
+            lastName: dto.lastName,
+            username: dto.username,
+            role: .member,
+            profilePictureURL: dto.profilePictureURL,
+            bio: dto.bio,
+            phoneNumber: dto.phoneNumber,
+            dateOfBirth: dto.dateOfBirth
+        )
     }
 }

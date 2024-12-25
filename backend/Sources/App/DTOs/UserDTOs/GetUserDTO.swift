@@ -6,5 +6,5 @@ struct GetUserDTO: Content {
     var username : String
     var profilePictureURL : String
     var bio : String
-    var dateOfBirth : String
+    var dateOfBirth : Date
 }

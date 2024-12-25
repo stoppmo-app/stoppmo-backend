@@ -16,24 +16,24 @@ struct UserController: RouteCollection {
     }
 
     @Sendable
-    func getAllUsers(req: Request) async throws -> [UserDTOs.GetUser] {
-        try await User.query(on: req.db).all().map { $0.toDTO(.get) }
+    func getAllUsers(req: Request) async throws -> [UserDTO.GetUser] {
+        try await User.query(on: req.db).all().map { $0.toDTO() }
     }
 
     @Sendable
-    func create(req: Request) async throws -> UserDTOs.GetUser {
-        let user = try req.content.decode(UserDTOs.CreateUser.self).toModel()
+    func create(req: Request) async throws -> UserDTO.GetUser {
+        let user = User.fromDTO(try req.content.decode(UserDTO.CreateUser.self))
 
         try await user.save(on: req.db)
-        return user.toDTO(.get)
+        return user.toDTO()
     }
 
     @Sendable
-    func getUserInfo(req: Request) async throws -> UserDTOs.GetUser {
+    func getUserInfo(req: Request) async throws -> UserDTO.GetUser {
         guard let user = try await User.find(req.parameters.get("userID"), on: req.db) else {
             throw Abort(.notFound)
         }
-        return user.toDTO(.get)
+        return user.toDTO()
     }
 
     @Sendable
@@ -47,16 +47,20 @@ struct UserController: RouteCollection {
     }
 
     @Sendable
-    func updateUser(req: Request) async throws -> UserDTOs.GetUser {
-        let updatedUser = try req.content.decode(UserDTOs.UpdateUser.self)
+    func updateUser(req: Request) async throws -> UserDTO.GetUser {
+        let updatedUser = try req.content.decode(UserDTO.UpdateUser.self)
         guard let user = try await User.find(req.parameters.get("userID"), on: req.db) else {
             throw Abort(.notFound)
         }
 
-        user.firstName = updatedUser.firstName ?? user.name
-        user.lastName = updatedUser.lastName ?? user.surname
-        user.password = updatedUser.password ?? user.password
-        user.role = updatedUser.role ?? user.role
+        user.firstName = updatedUser.firstName ?? user.firstName
+        user.lastName = updatedUser.lastName ?? user.lastName
+        user.username = updatedUser.username ?? user.lastName
+        user.username = updatedUser.username ?? user.lastName
+        user.profilePictureURL = updatedUser.profilePictureURL ?? user.profilePictureURL
+        user.bio = updatedUser.bio ?? user.bio
+        user.dateOfBirth = updatedUser.dateOfBirth ?? user.dateOfBirth
+        user.phoneNumber = updatedUser.phoneNumber ?? user.phoneNumber
 
         try await user.update(on: req.db)
         return user.toDTO()

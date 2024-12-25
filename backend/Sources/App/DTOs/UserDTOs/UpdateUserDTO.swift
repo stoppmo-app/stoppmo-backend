@@ -6,7 +6,6 @@ struct UpdateUserDTO: Content {
     var username : String?
     var profilePictureURL : String?
     var bio : String?
-    var dateOfBirth : String?
-    var password : String?
+    var dateOfBirth : Date?
     var phoneNumber : String?
 }
