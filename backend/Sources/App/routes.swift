@@ -11,4 +11,6 @@ func routes(_ app: Application) throws {
     }
 
     try app.register(collection: UserController())
+    try app.register(collection: BadgeController())
+    try app.register(collection: UserBadgeController())
 }
