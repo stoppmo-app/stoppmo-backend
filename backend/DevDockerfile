@@ -1,7 +1,7 @@
 # N.B.: 
 #   - Jammy is a specific Ubuntu version
 #   - Change "CURRENT_ENVIRONMENT" variable in ".env" to change the environment in the development container
-FROM swift:6.0-jammy AS swift
+FROM swift:6.0.3-jammy AS swift
 
 # Install OS updates and required binaries
 RUN export DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true \

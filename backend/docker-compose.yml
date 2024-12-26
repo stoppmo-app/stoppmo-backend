@@ -35,8 +35,6 @@ services:
     build:
       context: .
       dockerfile: ./DevDockerfile
-      args:
-        - current_environment=${CURRENT_ENVIRONMENT}
     environment:
       <<: *shared_environment
     depends_on:
@@ -54,7 +52,7 @@ services:
       db:
         condition: service_healthy
     ports:
-      - '8080:8080'
+      - '2222:2222'
     # user: '0' # uncomment to run as root for testing purposes even though Dockerfile defines 'vapor' user.
   migrate:
     image: backend:latest
