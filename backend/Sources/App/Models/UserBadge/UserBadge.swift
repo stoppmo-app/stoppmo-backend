@@ -44,7 +44,7 @@ final class UserBadge: Model, @unchecked Sendable {
 
 
     func toDTO() -> UserBadgeDTO.GetUserBadge {
-        return .init(startedAt: self.startedAt, claimedAt: self.claimedAt, badgeID: self.$badge.id, userID: self.$user.id, createdAt: self.createdAt)
+        return .init(id: self.id, startedAt: self.startedAt, claimedAt: self.claimedAt, badgeID: self.$badge.id, userID: self.$user.id, createdAt: self.createdAt)
     }
 
     static func fromDTO(_ dto: UserBadgeDTO.CreateUserBadge) -> UserBadge {

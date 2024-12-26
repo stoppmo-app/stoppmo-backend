@@ -10,6 +10,8 @@ struct CreateBadge: AsyncMigration {
             .field("created_at", .date, .required)
             .field("updated_at", .date)
             .create()
+
+        
     }
 
     func revert(on database: Database) async throws {

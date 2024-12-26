@@ -30,7 +30,7 @@ struct UserController: RouteCollection {
 
     @Sendable
     func getUserInfo(req: Request) async throws -> UserDTO.GetUser {
-        guard let user = try await User.find(req.parameters.get("userID"), on: req.db) else {
+        guard let user = try await User.find(req.parameters.get("userID", as: UUID.self), on: req.db) else {
             throw Abort(.notFound)
         }
         return user.toDTO()
@@ -38,7 +38,7 @@ struct UserController: RouteCollection {
 
     @Sendable
     func deleteUser(req: Request) async throws -> HTTPStatus {
-        guard let user = try await User.find(req.parameters.get("userID"), on: req.db) else {
+        guard let user = try await User.find(req.parameters.get("userID", as: UUID.self), on: req.db) else {
             throw Abort(.notFound)
         }
 
@@ -49,7 +49,7 @@ struct UserController: RouteCollection {
     @Sendable
     func updateUser(req: Request) async throws -> UserDTO.GetUser {
         let updatedUser = try req.content.decode(UserDTO.UpdateUser.self)
-        guard let user = try await User.find(req.parameters.get("userID"), on: req.db) else {
+        guard let user = try await User.find(req.parameters.get("userID", as: UUID.self), on: req.db) else {
             throw Abort(.notFound)
         }
 
@@ -62,8 +62,8 @@ struct UserController: RouteCollection {
         if let username = updatedUser.username {
             user.username  = username
         }
-        if let username = updatedUser.username {
-            user.username = username
+        if let email = updatedUser.email {
+            user.email = email
         }
         if let profilePictureURL = updatedUser.profilePictureURL {
             user.profilePictureURL = profilePictureURL

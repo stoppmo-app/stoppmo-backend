@@ -21,6 +21,9 @@ final class User: Model, @unchecked Sendable {
     @Field(key: "username")
     var username: String
 
+    @Field(key: "email")
+    var email: String
+
     @Enum(key: "role")
     var role: Role
 
@@ -52,6 +55,7 @@ final class User: Model, @unchecked Sendable {
         firstName: String,
         lastName: String,
         username: String,
+        email: String,
         role: Role,
         profilePictureURL: String,
         bio: String,
@@ -62,6 +66,7 @@ final class User: Model, @unchecked Sendable {
         self.firstName = firstName
         self.lastName = lastName
         self.username = username
+        self.email = email
         self.role = role
         self.profilePictureURL = profilePictureURL
         self.bio = bio
@@ -71,6 +76,7 @@ final class User: Model, @unchecked Sendable {
 
     func toDTO() -> UserDTO.GetUser {
         return .init(
+            id: self.id,
             firstName: self.firstName,
             lastName: self.lastName,
             username: self.username,
@@ -85,6 +91,7 @@ final class User: Model, @unchecked Sendable {
             firstName: dto.firstName,
             lastName: dto.lastName,
             username: dto.username,
+            email: dto.email,
             role: .member,
             profilePictureURL: dto.profilePictureURL,
             bio: dto.bio,
