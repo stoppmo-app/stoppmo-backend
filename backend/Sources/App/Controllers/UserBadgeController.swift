@@ -29,30 +29,26 @@ struct UserBadgeController: RouteCollection {
     }
 
     @Sendable
-    func createUserBadge(req: Request) async throws -> [UserBadgeDTO.GetUserBadge] {
+    func createUserBadge(req: Request) async throws -> UserBadgeDTO.GetUserBadge {
         let userBadge = UserBadge.fromDTO(try req.content.decode(UserBadgeDTO.CreateUserBadge.self))
         try await userBadge.save(on: req.db)
         return userBadge.toDTO()
     }
 
     @Sendable
-    func updateUserBadge(req: Request) async throws -> [UserBadgeDTO.GetUserBadge] {
+    func updateUserBadge(req: Request) async throws -> UserBadgeDTO.GetUserBadge {
         let updatedUserBadge = try req.content.decode(UserBadgeDTO.UpdateUserBadge.self)
 
         guard let userBadge = try await UserBadge.find(updatedUserBadge.id, on: req.db) else {
             throw Abort(.notFound)
         }
 
-        // TODO: update all the badge properties here
-
-        // user.firstName = updatedUser.firstName ?? user.firstName
-        // user.lastName = updatedUser.lastName ?? user.lastName
-        // user.username = updatedUser.username ?? user.lastName
-        // user.username = updatedUser.username ?? user.lastName
-        // user.profilePictureURL = updatedUser.profilePictureURL ?? user.profilePictureURL
-        // user.bio = updatedUser.bio ?? user.bio
-        // user.dateOfBirth = updatedUser.dateOfBirth ?? user.dateOfBirth
-        // user.phoneNumber = updatedUser.phoneNumber ?? user.phoneNumber
+        if let claimedAt = updatedUserBadge.claimedAt {
+            userBadge.claimedAt = claimedAt
+        }
+        if let startedAt = updatedUserBadge.startedAt {
+            userBadge.startedAt = startedAt
+        }
 
         try await userBadge.update(on: req.db)
         return userBadge.toDTO()

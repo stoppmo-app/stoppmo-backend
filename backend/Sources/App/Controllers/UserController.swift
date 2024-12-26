@@ -53,14 +53,30 @@ struct UserController: RouteCollection {
             throw Abort(.notFound)
         }
 
-        user.firstName = updatedUser.firstName ?? user.firstName
-        user.lastName = updatedUser.lastName ?? user.lastName
-        user.username = updatedUser.username ?? user.lastName
-        user.username = updatedUser.username ?? user.lastName
-        user.profilePictureURL = updatedUser.profilePictureURL ?? user.profilePictureURL
-        user.bio = updatedUser.bio ?? user.bio
-        user.dateOfBirth = updatedUser.dateOfBirth ?? user.dateOfBirth
-        user.phoneNumber = updatedUser.phoneNumber ?? user.phoneNumber
+        if let firstName = updatedUser.firstName {
+            user.firstName  = firstName
+        }
+        if let lastName = updatedUser.lastName {
+            user.lastName  = lastName
+        }
+        if let username = updatedUser.username {
+            user.username  = username
+        }
+        if let username = updatedUser.username {
+            user.username = username
+        }
+        if let profilePictureURL = updatedUser.profilePictureURL {
+            user.profilePictureURL = profilePictureURL
+        }
+        if let bio = updatedUser.bio {
+            user.bio = bio
+        }
+        if let dateOfBirth = updatedUser.dateOfBirth {
+            user.dateOfBirth = dateOfBirth
+        }
+        if let phoneNumber = updatedUser.phoneNumber {
+            user.phoneNumber = phoneNumber
+        }
 
         try await user.update(on: req.db)
         return user.toDTO()

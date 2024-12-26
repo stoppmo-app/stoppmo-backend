@@ -5,6 +5,7 @@ struct CreateUserBadge: AsyncMigration {
         try await database.schema("user_badges")
             .id()
             .field("started_at", .date, .required)
+            .field("claimed_at", .date, .required)
             .field("badge_id", .uuid, .required)
             .field("user_id", .uuid, .required)
             .field("created_at", .date, .required)
