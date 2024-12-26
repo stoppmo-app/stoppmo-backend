@@ -7,4 +7,5 @@ struct GetUserDTO: Content {
     var profilePictureURL : String
     var bio : String
     var dateOfBirth : Date
+    var updatedAt: Date?
 }

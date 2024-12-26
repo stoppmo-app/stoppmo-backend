@@ -7,8 +7,8 @@ struct CreateBadge: AsyncMigration {
             .field("name", .string, .required)
             .field("description", .string, .required)
             .field("unlock_after_x_days", .int, .required)
-            .field("created_at", .string, .required)
-            .field("updated_at", .string)
+            .field("created_at", .date, .required)
+            .field("updated_at", .date)
             .create()
     }
 
