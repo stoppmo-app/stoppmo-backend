@@ -15,7 +15,7 @@ struct BadgeController: RouteCollection {
 
     @Sendable
     func getBadgeInfo(req: Request) async throws -> BadgeDTO.GetBadge {
-        guard let badge = try await Badge.find(req.parameters.get("badgeID"), on: req.db) else {
+        guard let badge = try await Badge.find(req.parameters.get("badgeID", as: UUID.self), on: req.db) else {
             throw Abort(.notFound)
         }
         return badge.toDTO()
