@@ -76,6 +76,7 @@ final class User: Model, @unchecked Sendable {
 
     func toDTO() -> UserDTO.GetUser {
         return .init(
+            id: self.id,
             firstName: self.firstName,
             lastName: self.lastName,
             username: self.username,

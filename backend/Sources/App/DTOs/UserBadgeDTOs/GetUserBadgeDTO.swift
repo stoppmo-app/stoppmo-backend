@@ -1,6 +1,7 @@
 import Vapor
 
 struct GetUserBadgeDTO: Content {
+    var id: UUID?
     var startedAt: Date
     var claimedAt: Date
     var badgeID: UUID
