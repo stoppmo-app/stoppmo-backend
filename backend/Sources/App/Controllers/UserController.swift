@@ -62,8 +62,8 @@ struct UserController: RouteCollection {
         if let username = updatedUser.username {
             user.username  = username
         }
-        if let username = updatedUser.username {
-            user.username = username
+        if let email = updatedUser.email {
+            user.email = email
         }
         if let profilePictureURL = updatedUser.profilePictureURL {
             user.profilePictureURL = profilePictureURL
