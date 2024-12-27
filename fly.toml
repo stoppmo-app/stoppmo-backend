@@ -7,7 +7,6 @@ app = 'stoppmo-backend'
 primary_region = 'jnb'
 
 [build]
-  dockerfile = "backend/
 
 [http_service]
   internal_port = 8080
