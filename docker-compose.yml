@@ -35,11 +35,9 @@ services:
       db:
         condition: service_healthy
     ports:
-      - '8080:80'
+      - '80:8080'
     deploy:
-
-      mode: replicated
-      replicas: 2
+      mode: global
       resources:
         limits:
           cpus: '1'
@@ -89,10 +87,9 @@ services:
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
       POSTGRES_DB: ${DATABASE_NAME}
     ports:
-      - '5432:${DATABASE_PORT}'
+      - '${DATABASE_PORT}:5432'
     deploy:
-      mode: replicated
-      replicas: 2
+      mode: global
       resources:
         limits:
           cpus: '0.5'
