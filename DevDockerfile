@@ -15,7 +15,7 @@ RUN npm install -g nodemon && apt-get remove npm -y
 
 WORKDIR /app
 
-EXPOSE 8080
+EXPOSE ${DEV_CONTAINER_PORT}
 
 # 1. Build app
 # 2. Hot reload application
@@ -24,4 +24,4 @@ EXPOSE 8080
 #    - Ignore build so that it does not hot reload recursively ("--ignore ./.build")
 #    - Specify execution command, it will stop the app and rerun this command each time something changes ("'swift run App serve --hostname 0.0.0.0 --port 8080'")
 
-CMD bash -c "nodemon -w ./ -w .env -e '.' --ignore ./.build --exec 'swift run App serve --env $CURRENT_ENVIRONMENT --hostname 0.0.0.0 --port 8080'"
+CMD bash -c "nodemon -w ./ -w .env -e '.' --ignore ./.build --exec 'swift run App serve --env $CURRENT_ENVIRONMENT --hostname 0.0.0.0 --port $DEV_CONTAINER_PORT'"

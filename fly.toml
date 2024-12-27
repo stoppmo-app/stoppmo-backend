@@ -1,4 +1,4 @@
-# fly.toml app configuration file generated for stoppmo-backend on 2024-12-27T08:18:45+02:00
+# fly.toml app configuration file generated for stoppmo-backend on 2024-12-30T12:37:36+02:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
@@ -17,9 +17,6 @@ primary_region = 'jnb'
   processes = ['app']
 
 [[vm]]
-  memory = '2gb'
+  memory = '1gb'
   cpu_kind = 'shared'
-  cpus = 4
-
-[deploy]
-  release_command = "migrate -y"
+  cpus = 1
