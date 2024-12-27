@@ -26,6 +26,7 @@ public func configure(_ app: Application) async throws {
 
     app.views.use(.leaf)
 
+    // random changes here
     app.migrations.addGroup(UserMigrations())
     app.migrations.addGroup(BadgeMigrations())
     app.migrations.addGroup(UserBadgeMigrations())
