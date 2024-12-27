@@ -37,6 +37,7 @@ services:
     ports:
       - '8080:80'
     deploy:
+
       mode: replicated
       replicas: 2
       resources:
@@ -46,11 +47,11 @@ services:
         reservations:
           cpus: '0.25'
           memory: '400m'
-        restart_policy:
-          condition: on-failure
-          delay: 5s
-          max_attempts: 3
-          window: 120s
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
   migrate:
     image: backend:latest
     build:
@@ -99,8 +100,8 @@ services:
         reservations:
           cpus: '0.25'
           memory: '400m'
-        restart_policy:
-          condition: on-failure
-          delay: 5s
-          max_attempts: 3
-          window: 120s
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
