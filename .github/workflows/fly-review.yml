@@ -5,7 +5,7 @@ on:
     types: [opened, reopened, synchronize, closed]
 
 env:
-  FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+  FLY_API_TOKEN: ${{ secrets.FLY_ORG_STOPPMO_API_TOKEN }}
   # Set these to your Fly.io organization and preferred region.
   FLY_REGION: jnb
   FLY_ORG: stoppmo-490
@@ -34,4 +34,5 @@ jobs:
         id: deploy
         uses: superfly/fly-pr-review-apps@1.2.1
         with:
+          name: stoppmo-backend-pr-${{ github.event.number }} 
           secrets: DATABASE_URL=${{ secrets.SANDBOX_DATABASE_URL }}
