@@ -9,7 +9,8 @@ on:
 
 jobs:
   run-lint:
-    runs-on: macos
+    name: Run SwiftLint
+    runs-on: macos-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -24,15 +25,16 @@ jobs:
       - name: Install NodeJS Dependencies
         uses: bahmutov/npm-install@v1
 
-      - name: Install swiftlint
+      - name: Install SwiftLint
         run: |
             npm run install:swiftlint
 
-      - name: Run swiftlint
+      - name: Run SwiftLint
         run: |
           npm run lint
   run-formatting-lint:
-    runs-on: macos
+    name: Run SwiftFormat Lint
+    runs-on: macos-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -47,10 +49,10 @@ jobs:
       - name: Install NodeJS Dependencies
         uses: bahmutov/npm-install@v1
 
-      - name: Install swiftformat
+      - name: Install SwiftFormat
         run: |
             npm run install:swiftformat
 
-      - name: Run swiftformat lint
+      - name: Run SwiftFormat Lint
         run: |
           npm run format:lint

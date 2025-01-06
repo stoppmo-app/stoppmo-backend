@@ -1,4 +1,4 @@
-name: CLOC Codebase
+name: Count Codebase Code
 
 on:
   push:
@@ -9,7 +9,8 @@ on:
 
 jobs:
   cloc:
-    runs-on: macos
+    name: Count Codebase Code
+    runs-on: macos-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
