@@ -33,6 +33,7 @@ public func configure(_ app: Application) async throws {
     app.migrations.addGroup(BadgeMigrations())
     app.migrations.addGroup(UserBadgeMigrations())
 
+    // Automatically run migrations on database
     try await app.autoMigrate()
 
     // register routes
