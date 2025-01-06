@@ -1,9 +1,14 @@
+// Badge.swift
+// Copyright (c) 2025 StopPMO
+// All source code and related assets are the property of StopPMO.
+// All rights reserved.
+
 import Fluent
 import Foundation
 
 final class Badge: Model, @unchecked Sendable {
     static let schema = "badges"
-    
+
     @ID(key: .id)
     var id: UUID?
 
@@ -22,7 +27,7 @@ final class Badge: Model, @unchecked Sendable {
     @Timestamp(key: "updated_at", on: .update)
     var updatedAt: Date?
 
-    init() { }
+    init() {}
 
     init(
         id: UUID? = nil,
@@ -37,6 +42,6 @@ final class Badge: Model, @unchecked Sendable {
     }
 
     func toDTO() -> BadgeDTO.GetBadge {
-        return .init(id: self.id, name: self.name, description: self.description, unlockAfterXDays: self.unlockAfterXDays)
+        .init(id: id, name: name, description: description, unlockAfterXDays: unlockAfterXDays)
     }
 }

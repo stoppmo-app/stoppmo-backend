@@ -1,0 +1,28 @@
+name: Count Codebase Code
+
+on:
+  push:
+    branches-ignore:
+      - develop
+      - release/staging
+      - release/production
+
+jobs:
+  cloc:
+    name: Count Codebase Code
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up environment
+        run: |
+          echo "Running on branch: $GITHUB_REF"
+          alias swiftlint="/opt/homebrew/bin/swiftlint"
+
+      - name: Run CLOC
+        run: |
+          brew install cloc
+          cloc .
