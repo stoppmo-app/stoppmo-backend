@@ -1,3 +1,8 @@
+// CreateBadge.swift
+// Copyright (c) 2025 StopPMO
+// All source code and related assets are the property of StopPMO.
+// All rights reserved.
+
 import Fluent
 
 struct CreateBadge: AsyncMigration {
@@ -10,8 +15,6 @@ struct CreateBadge: AsyncMigration {
             .field("created_at", .date, .required)
             .field("updated_at", .date)
             .create()
-
-        
     }
 
     func revert(on database: Database) async throws {

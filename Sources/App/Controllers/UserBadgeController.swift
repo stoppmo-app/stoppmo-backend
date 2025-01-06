@@ -1,3 +1,8 @@
+// UserBadgeController.swift
+// Copyright (c) 2025 StopPMO
+// All source code and related assets are the property of StopPMO.
+// All rights reserved.
+
 import Fluent
 import Vapor
 
@@ -6,21 +11,22 @@ struct UserBadgeController: RouteCollection {
         let userBadges = routes.grouped("user_badges")
 
         userBadges.group(":badgeID") { userBadge in
-            userBadge.get(use: self.getUserBadgeInfo)
-            userBadge.delete(use: self.deleteUserBadge)
-            userBadge.patch(use: self.updateUserBadge)
+            userBadge.get(use: getUserBadgeInfo)
+            userBadge.delete(use: deleteUserBadge)
+            userBadge.patch(use: updateUserBadge)
         }
 
-        userBadges.post(use: self.createUserBadge)
-        userBadges.get("user", ":userID", use: self.getAllBadgesFromUser)
-        userBadges.get("badge", ":badgeID", use: self.getUserBadgesFromBadge)
+        userBadges.post(use: createUserBadge)
+        userBadges.get("user", ":userID", use: getAllBadgesFromUser)
+        userBadges.get("badge", ":badgeID", use: getUserBadgesFromBadge)
     }
 
     @Sendable
     func getUserBadgeInfo(req: Request) async throws -> UserBadgeDTO.GetUserBadge {
         guard
             let userBadge = try await UserBadge.find(
-                req.parameters.get("badgeID", as: UUID.self), on: req.db)
+                req.parameters.get("badgeID", as: UUID.self), on: req.db
+            )
         else {
             throw Abort(.notFound)
         }
@@ -31,7 +37,8 @@ struct UserBadgeController: RouteCollection {
     func deleteUserBadge(req: Request) async throws -> HTTPStatus {
         guard
             let userBadge = try await UserBadge.find(
-                req.parameters.get("badgeID", as: UUID.self), on: req.db)
+                req.parameters.get("badgeID", as: UUID.self), on: req.db
+            )
         else {
             throw Abort(.notFound)
         }
@@ -51,7 +58,7 @@ struct UserBadgeController: RouteCollection {
 
     @Sendable
     func createUserBadge(req: Request) async throws -> UserBadgeDTO.GetUserBadge {
-        let userBadge = UserBadge.fromDTO(try req.content.decode(UserBadgeDTO.CreateUserBadge.self))
+        let userBadge = try UserBadge.fromDTO(req.content.decode(UserBadgeDTO.CreateUserBadge.self))
         try await userBadge.save(on: req.db)
         return userBadge.toDTO()
     }
@@ -62,7 +69,8 @@ struct UserBadgeController: RouteCollection {
 
         guard
             let userBadge = try await UserBadge.find(
-                req.parameters.get("badgeID", as: UUID.self), on: req.db)
+                req.parameters.get("badgeID", as: UUID.self), on: req.db
+            )
         else {
             throw Abort(.notFound)
         }

@@ -1,3 +1,8 @@
+// User.swift
+// Copyright (c) 2025 StopPMO
+// All source code and related assets are the property of StopPMO.
+// All rights reserved.
+
 import Fluent
 import Foundation
 import Vapor
@@ -75,19 +80,19 @@ final class User: Model, @unchecked Sendable {
     }
 
     func toDTO() -> UserDTO.GetUser {
-        return .init(
-            id: self.id,
-            firstName: self.firstName,
-            lastName: self.lastName,
-            username: self.username,
-            profilePictureURL: self.profilePictureURL,
-            bio: self.bio,
-            dateOfBirth: self.dateOfBirth
+        .init(
+            id: id,
+            firstName: firstName,
+            lastName: lastName,
+            username: username,
+            profilePictureURL: profilePictureURL,
+            bio: bio,
+            dateOfBirth: dateOfBirth
         )
     }
 
     static func fromDTO(_ dto: UserDTO.CreateUser) -> User {
-        return .init(
+        .init(
             firstName: dto.firstName,
             lastName: dto.lastName,
             username: dto.username,

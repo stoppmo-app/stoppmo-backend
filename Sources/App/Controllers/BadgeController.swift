@@ -1,11 +1,16 @@
+// BadgeController.swift
+// Copyright (c) 2025 StopPMO
+// All source code and related assets are the property of StopPMO.
+// All rights reserved.
+
 import Fluent
 import Vapor
 
 struct BadgeController: RouteCollection {
     func boot(routes: RoutesBuilder) throws {
         let badges = routes.grouped("badges")
-        badges.get(use: self.getAllBadges)
-        badges.get(":badgeID", use: self.getBadgeInfo)
+        badges.get(use: getAllBadges)
+        badges.get(":badgeID", use: getBadgeInfo)
     }
 
     @Sendable
@@ -20,5 +25,4 @@ struct BadgeController: RouteCollection {
         }
         return badge.toDTO()
     }
-
 }

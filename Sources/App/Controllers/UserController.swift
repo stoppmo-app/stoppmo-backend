@@ -1,3 +1,8 @@
+// UserController.swift
+// Copyright (c) 2025 StopPMO
+// All source code and related assets are the property of StopPMO.
+// All rights reserved.
+
 import Fluent
 import Vapor
 
@@ -5,13 +10,13 @@ struct UserController: RouteCollection {
     func boot(routes: RoutesBuilder) throws {
         let users = routes.grouped("users")
 
-        users.get(use: self.getAllUsers)
-        users.post(use: self.createUser)
+        users.get(use: getAllUsers)
+        users.post(use: createUser)
 
         users.group(":userID") { user in
-            user.get(use: self.getUserInfo)
-            user.delete(use: self.deleteUser)
-            user.patch(use: self.updateUser)
+            user.get(use: getUserInfo)
+            user.delete(use: deleteUser)
+            user.patch(use: updateUser)
         }
     }
 
@@ -22,7 +27,7 @@ struct UserController: RouteCollection {
 
     @Sendable
     func createUser(req: Request) async throws -> UserDTO.GetUser {
-        let user = User.fromDTO(try req.content.decode(UserDTO.CreateUser.self))
+        let user = try User.fromDTO(req.content.decode(UserDTO.CreateUser.self))
 
         try await user.save(on: req.db)
         return user.toDTO()
@@ -54,13 +59,13 @@ struct UserController: RouteCollection {
         }
 
         if let firstName = updatedUser.firstName {
-            user.firstName  = firstName
+            user.firstName = firstName
         }
         if let lastName = updatedUser.lastName {
-            user.lastName  = lastName
+            user.lastName = lastName
         }
         if let username = updatedUser.username {
-            user.username  = username
+            user.username = username
         }
         if let email = updatedUser.email {
             user.email = email

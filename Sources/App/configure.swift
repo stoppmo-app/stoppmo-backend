@@ -1,3 +1,8 @@
+// configure.swift
+// Copyright (c) 2025 StopPMO
+// All source code and related assets are the property of StopPMO.
+// All rights reserved.
+
 import Fluent
 import FluentPostgresDriver
 import Leaf
@@ -13,7 +18,7 @@ public func configure(_ app: Application) async throws {
         app.logger.info("Database URL: \(databaseURL)")
         try app.databases.use(.postgres(url: databaseURL), as: .psql)
     } else {
-        app.databases.use(
+        try app.databases.use(
             DatabaseConfigurationFactory.postgres(
                 configuration: .init(
                     hostname: Environment.get("DATABASE_HOST") ?? "localhost",
@@ -22,8 +27,10 @@ public func configure(_ app: Application) async throws {
                     username: Environment.get("DATABASE_USERNAME") ?? "vapor_username",
                     password: Environment.get("DATABASE_PASSWORD") ?? "vapor_password",
                     database: Environment.get("DATABASE_NAME") ?? "vapor_database",
-                    tls: .prefer(try .init(configuration: .clientDefault)))
-            ), as: .psql)
+                    tls: .prefer(.init(configuration: .clientDefault))
+                )
+            ), as: .psql
+        )
     }
 
     app.views.use(.leaf)
