@@ -1,3 +1,8 @@
+// routes.swift
+// Copyright (c) 2025 StopPMO
+// All source code and related assets are the property of StopPMO.
+// All rights reserved.
+
 import Fluent
 import Vapor
 
@@ -6,7 +11,7 @@ func routes(_ app: Application) throws {
         try await req.view.render("index", ["title": "Hello Vapor!"])
     }
 
-    app.get("hello") { req async -> String in
+    app.get("hello") { _ async -> String in
         "Hello there world!"
     }
 
