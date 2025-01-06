@@ -1,0 +1,5 @@
+--maxwidth 120
+--allman false
+--indent 4
+--trimwhitespace always
+--header "{file}\nCopyright (c) {year} StopPMO\nAll source code and related assets are the property of StopPMO.\nAll rights reserved."

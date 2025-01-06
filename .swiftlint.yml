@@ -1,0 +1,30 @@
+disabled_rules:
+  - trailing_comma
+  - type_name
+  - opening_brace
+  - multiple_closures_with_trailing_closure
+  - force_cast
+  # TODO: Remove these
+  - todo
+  - void_function_in_ternary
+  - static_over_final_class
+  - file_length # Set this to a max of 1500
+  - type_body_length # set this to 1500
+
+excluded:
+  - '**/.build/**'            # Exclude all .build directories, including nested ones
+  - '**/Carthage/**'           # Exclude Carthage build directory (recursive)
+  - '**/Pods/**'               # Exclude Pods directory (recursive)
+  - '**/DerivedData/**'        # Exclude DerivedData directory (recursive)
+  - '**/*.xcodeproj'           # Exclude Xcode project files
+  - '**/*.xcworkspace'         # Exclude Xcode workspace files
+  - '**/*.swiftmodule'         # Exclude Swift module files
+  - '**/*.swiftinterface'      # Exclude Swift interface files
+  - '**/Generated/**'          # Exclude generated files/folders
+
+line_length:
+  warning: 150
+  ignores_function_declarations: true
+  ignores_comments: true
+  ignores_interpolated_strings: true
+  ignores_urls: true

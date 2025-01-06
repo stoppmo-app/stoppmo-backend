@@ -1,3 +1,8 @@
+// Todo.swift
+// Copyright (c) 2025 StopPMO
+// All source code and related assets are the property of StopPMO.
+// All rights reserved.
+
 import Fluent
 import struct Foundation.UUID
 
@@ -6,24 +11,24 @@ import struct Foundation.UUID
 /// afterwards with `@unchecked Sendable`.
 final class Todo: Model, @unchecked Sendable {
     static let schema = "todos"
-    
+
     @ID(key: .id)
     var id: UUID?
 
     @Field(key: "title")
     var title: String
 
-    init() { }
+    init() {}
 
     init(id: UUID? = nil, title: String) {
         self.id = id
         self.title = title
     }
-    
+
     func toDTO() -> TodoDTO {
         .init(
-            id: self.id,
-            title: self.$title.value
+            id: id,
+            title: $title.value
         )
     }
 }

@@ -1,10 +1,15 @@
-import Vapor
-import Fluent
+// MigrationUtils.swift
+// Copyright (c) 2025 StopPMO
+// All source code and related assets are the property of StopPMO.
+// All rights reserved.
 
-extension Migrations {
-    public func addGroup(_ group: any MigrationsGroup, to id: DatabaseID? = nil) { 
+import Fluent
+import Vapor
+
+public extension Migrations {
+    func addGroup(_ group: any MigrationsGroup, to id: DatabaseID? = nil) {
         for migration in group.migrations {
-            self.add(migration, to: id)
+            add(migration, to: id)
         }
     }
 }
