@@ -34,5 +34,5 @@ jobs:
         id: deploy
         uses: superfly/fly-pr-review-apps@1.2.1
         with:
-          name: stoppmo-backend-pr-${{ github.event.number }} 
+          name: stoppmo-backend-pr-${{ github.event.number }}-${{ github.head_ref }}-to-${{ github.base_ref }}
           secrets: DATABASE_URL=${{ secrets.SANDBOX_DATABASE_URL }}
