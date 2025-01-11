@@ -16,6 +16,9 @@ jobs:
   db:
     if: github.event.action == 'opened' || github.event.action == 'reopened'
     runs-on: ubuntu-latest
+    environment:
+      name: review
+      url: https://${{ env.FLY_PREVIEW_APP_NAME }}.fly.dev
     steps:
       - name: Checkout Github repo
         uses: actions/checkout@v4
@@ -39,11 +42,6 @@ jobs:
         with:
           args:
             "deploy --app ${{ env.FLY_PREVIEW_APP_NAME }} -c ${{ env.FLY_CONFIG_PATH }}"
-      - name: Post link to PR Preview
-        uses: actions-ecosystem/action-create-comment@v1
-        with:
-          github_token: ${{ secrets.github_token }}
-          body: Your PR is deployed, see it [here](https://${{ env.FLY_PREVIEW_APP_NAME }}.fly.dev)
   delete_apps:
     if: github.event.action == 'closed'
     runs-on: ubuntu-latest
@@ -63,6 +61,9 @@ jobs:
   redeploy_app:
     if: github.event.action == 'synchronize'
     runs-on: ubuntu-latest
+    environment:
+      name: review
+      url: https://${{ env.FLY_PREVIEW_APP_NAME }}.fly.dev
     steps:
       - name: Checkout Github Repo
         uses: actions/checkout@v4
