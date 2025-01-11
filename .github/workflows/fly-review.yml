@@ -16,6 +16,11 @@ jobs:
   create_apps:
     if: github.event.action == 'opened' || github.event.action == 'reopened'
     runs-on: ubuntu-latest
+    outputs:
+      url: https://${{ env.FLY_PREVIEW_APP_NAME }}.fly.dev
+    # Only run one deployment at a time per PR.
+    concurrency:
+      group: pr-${{ github.event.number }}
     environment:
       name: review
       url: https://${{ env.FLY_PREVIEW_APP_NAME }}.fly.dev
@@ -58,9 +63,14 @@ jobs:
         with:
           args:
             'apps destroy ${{ env.FLY_PREVIEW_APP_NAME }} --yes'
-  redeploy_app:
+  redeploy_preview_app:
     if: github.event.action == 'synchronize'
     runs-on: ubuntu-latest
+    outputs:
+      url: https://${{ env.FLY_PREVIEW_APP_NAME }}.fly.dev
+    # Only run one deployment at a time per PR.
+    concurrency:
+      group: pr-${{ github.event.number }}
     environment:
       name: review
       url: https://${{ env.FLY_PREVIEW_APP_NAME }}.fly.dev
