@@ -66,3 +66,4 @@ jobs:
         uses: superfly/fly-pr-review-apps@1.2.1
         with:
           name: ${{ env.FLY_PREVIEW_APP_NAME }}
+          config: ./infra/fly.toml
