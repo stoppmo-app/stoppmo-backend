@@ -48,7 +48,7 @@ jobs:
           args:
             "deploy --app ${{ env.FLY_PREVIEW_APP_NAME }} -c ${{ env.FLY_CONFIG_PATH }}"
   delete_apps:
-    if: github.event.action == 'closed'
+    if: github.event.action == 'closed' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Github Repo
