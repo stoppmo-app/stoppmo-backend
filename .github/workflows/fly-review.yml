@@ -25,7 +25,7 @@ jobs:
       name: review
       url: https://${{ env.FLY_PREVIEW_APP_NAME }}.fly.dev
     steps:
-      - name: Checkout Github repo
+      - name: Checkout Github Repo
         uses: actions/checkout@v4
       - name: Create Database
         uses: superfly/flyctl-actions@1.5
