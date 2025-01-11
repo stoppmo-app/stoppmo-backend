@@ -10,6 +10,7 @@ env:
   FLY_ORG: stoppmo-490
   FLY_PREVIEW_APP_NAME: stoppmo-backend-pr-${{ github.event.number }}-${{ github.head_ref }}-to-${{ github.base_ref }}
   FLY_PREVIEW_DATABASE_NAME: stoppmo-db-pr-${{ github.event.number }}
+  FLY_CONFIG_PATH: ./infra/fly.toml
 
 jobs:
   db:
@@ -19,18 +20,32 @@ jobs:
     steps:
       - name: Checkout Github repo
         uses: actions/checkout@v4
-      - name: Create PostgreSQL app
+      - name: Create Database
         uses: superfly/flyctl-actions@1.5
         with:
           args:
             'pg create --region ${{ env.FLY_REGION }} --vm-size shared-cpu-1x --name  ${{ env.FLY_PREVIEW_DATABASE_NAME }} --volume-size 5 --org ${{ env.FLY_ORG }} --initial-cluster-size 2'
-      - name: Connect main app to PostrgeSQL app
+      - name: Create fly app
+        uses: superfly/flyctl-actions@1.1
+        with:
+          args: "apps create ${{ env.FLY_PREVIEW_APP_NAME }} --org ${{ env.FLY_ORG }}"
+      - name: Connect DB to Preview App
         uses: superfly/flyctl-actions@1.5
         env:
           FLY_APP: ${{ env.FLY_PREVIEW_APP_NAME }}
         with:
           args: 'pg attach ${{ env.FLY_PREVIEW_DATABASE_NAME }} --app ${{ env.FLY_PREVIEW_APP_NAME }}'
-  # The `superfly/fly-pr-review-apps@1.2.1` action will automatically destroy the preview app when the pull request is closed
+      - name: Deploy app
+        uses: superfly/flyctl-actions@1.5
+        with:
+          args:
+            "deploy --region ${{ env.FLY_REGION }} --app ${{ env.FLY_PREVIEW_APP_NAME }} -c ${{ env.FLY_CONFIG_PATH }}"
+      - name: Post link to PR Preview
+        uses: actions-ecosystem/action-create-comment@v1
+        with:
+          github_token: ${{ secrets.github_token }}
+          body: Your PR is deployed, see it [here](https://${{ env.FLY_PREVIEW_APP_NAME }}.fly.dev)
+
   delete_db:
     if: github.event.action == 'closed'
     runs-on: ubuntu-latest
@@ -42,28 +57,23 @@ jobs:
         with:
           args:
             'apps destroy ${{ env.FLY_PREVIEW_DATABASE_NAME }} --yes'
+
   review_app:
+    if: github.event.action != 'opened' || github.event.action != 'reopened'
     runs-on: ubuntu-latest
     outputs:
       url: ${{ steps.deploy.outputs.url }}
-    # Only run one deployment at a time per PR.
     concurrency:
       group: pr-${{ github.event.number }}
-
-    # Deploying apps with this "review" environment allows the URL for the app to be displayed in the PR UI.
-    # Feel free to change the name of this environment.
     environment:
       name: review
-      # The script in the `deploy` sets the URL output for each review app.
       url: ${{ steps.deploy.outputs.url }}
-
     steps:
       - name: Get code
         uses: actions/checkout@v4
-
       - name: Deploy PR app to Fly.io
         id: deploy
         uses: superfly/fly-pr-review-apps@1.2.1
         with:
           name: ${{ env.FLY_PREVIEW_APP_NAME }}
-          config: ./infra/fly.toml
+          config: ${{ env.FLY_CONFIG_PATH }}
