@@ -44,7 +44,6 @@ jobs:
         with:
           github_token: ${{ secrets.github_token }}
           body: Your PR is deployed, see it [here](https://${{ env.FLY_PREVIEW_APP_NAME }}.fly.dev)
-
   delete_apps:
     if: github.event.action == 'closed'
     runs-on: ubuntu-latest
@@ -67,11 +66,6 @@ jobs:
     steps:
       - name: Checkout Github Repo
         uses: actions/checkout@v4
-      - name: Delete DB
-        uses: superfly/flyctl-actions@1.5
-        with:
-          args:
-            'apps destroy ${{ env.FLY_PREVIEW_DATABASE_NAME }} --yes'
       - name: Redeploy Preview App
         uses: superfly/flyctl-actions@1.5
         with:
