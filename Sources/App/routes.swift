@@ -15,6 +15,7 @@ func routes(_ app: Application) throws {
         "Hello there world!"
     }
 
+    // register all controllers
     try app.register(collection: UserController())
     try app.register(collection: BadgeController())
     try app.register(collection: UserBadgeController())
