@@ -8,7 +8,7 @@ env:
   FLY_API_TOKEN: ${{ secrets.FLY_ORG_STOPPMO_API_TOKEN }}
   FLY_REGION: bos
   FLY_ORG: stoppmo-490
-  FLY_PREVIEW_APP_NAME: stoppmo-backend-pr-${{ github.event.number }}-${{ github.head_ref }}-to-${{ github.base_ref }}
+  FLY_PREVIEW_APP_NAME: stoppmo-backend-pr-${{ github.event.number }}
   FLY_PREVIEW_DATABASE_NAME: stoppmo-db-pr-${{ github.event.number }}
   FLY_CONFIG_PATH: ./infra/fly.toml
 
