@@ -33,9 +33,10 @@ public func configure(_ app: Application) async throws {
         )
     }
 
+    // use leaf templates for views
     app.views.use(.leaf)
 
-    // Run all migrations
+    // run all migrations
     app.migrations.addGroup(UserMigrations())
     app.migrations.addGroup(BadgeMigrations())
     app.migrations.addGroup(UserBadgeMigrations())

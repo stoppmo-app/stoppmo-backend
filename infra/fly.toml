@@ -4,7 +4,7 @@
 #
 
 app = 'stoppmo-backend'
-primary_region = 'jnb'
+primary_region = 'bos'
 
 [build]
 
