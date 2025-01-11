@@ -14,7 +14,6 @@ env:
 
 jobs:
   db:
-    needs: [review_app]
     if: github.event.action == 'opened' || github.event.action == 'reopened'
     runs-on: ubuntu-latest
     steps:
