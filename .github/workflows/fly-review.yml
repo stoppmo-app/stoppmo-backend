@@ -13,7 +13,7 @@ env:
   FLY_CONFIG_PATH: ./infra/fly.toml
 
 jobs:
-  db:
+  create_apps:
     if: github.event.action == 'opened' || github.event.action == 'reopened'
     runs-on: ubuntu-latest
     environment:
@@ -27,17 +27,17 @@ jobs:
         with:
           args:
             'pg create --region ${{ env.FLY_REGION }} --vm-size shared-cpu-1x --name  ${{ env.FLY_PREVIEW_DATABASE_NAME }} --volume-size 5 --org ${{ env.FLY_ORG }} --initial-cluster-size 2'
-      - name: Create fly app
+      - name: Create Review App
         uses: superfly/flyctl-actions@1.1
         with:
           args: "apps create ${{ env.FLY_PREVIEW_APP_NAME }} --org ${{ env.FLY_ORG }}"
-      - name: Connect DB to Preview App
+      - name: Connect Database to Preview App
         uses: superfly/flyctl-actions@1.5
         env:
           FLY_APP: ${{ env.FLY_PREVIEW_APP_NAME }}
         with:
           args: 'pg attach ${{ env.FLY_PREVIEW_DATABASE_NAME }} --app ${{ env.FLY_PREVIEW_APP_NAME }}'
-      - name: Deploy app
+      - name: Deploy Preview App
         uses: superfly/flyctl-actions@1.5
         with:
           args:
@@ -48,12 +48,12 @@ jobs:
     steps:
       - name: Checkout Github Repo
         uses: actions/checkout@v4
-      - name: Delete DB
+      - name: Delete Database
         uses: superfly/flyctl-actions@1.5
         with:
           args:
             'apps destroy ${{ env.FLY_PREVIEW_DATABASE_NAME }} --yes'
-      - name: Delete App
+      - name: Delete Preview App
         uses: superfly/flyctl-actions@1.5
         with:
           args:
