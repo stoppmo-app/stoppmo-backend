@@ -19,12 +19,12 @@ jobs:
     steps:
       - name: Checkout Github repo
         uses: actions/checkout@v4
-      - name: Build DB
+      - name: Create PostgreSQL app
         uses: superfly/flyctl-actions@1.5
         with:
           args:
             'pg create --region ${{ env.FLY_REGION }} --vm-size shared-cpu-1x --name  ${{ env.FLY_PREVIEW_DATABASE_NAME }} --volume-size 5 --org ${{ env.FLY_ORG }} --initial-cluster-size 2'
-      - name: Connect app to DB
+      - name: Connect main app to PostrgeSQL app
         uses: superfly/flyctl-actions@1.5
         env:
           FLY_APP: ${{ env.FLY_PREVIEW_APP_NAME }}
@@ -35,13 +35,13 @@ jobs:
     if: github.event.action == 'closed'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Github repo
+      - name: Checkout Github Repo
         uses: actions/checkout@v4
       - name: Delete DB
         uses: superfly/flyctl-actions@1.5
         with:
           args:
-            'apps destroy ${{ env.FLY_PREVIEW_DATABASE_NAME }}'
+            'apps destroy ${{ env.FLY_PREVIEW_DATABASE_NAME }} --yes'
   review_app:
     runs-on: ubuntu-latest
     outputs:
