@@ -6,33 +6,79 @@ on:
 
 env:
   FLY_API_TOKEN: ${{ secrets.FLY_ORG_STOPPMO_API_TOKEN }}
-  # Set these to your Fly.io organization and preferred region.
-  FLY_REGION: jnb
+  FLY_REGION: bos
   FLY_ORG: stoppmo-490
+  FLY_PREVIEW_APP_NAME: stoppmo-backend-pr-${{ github.event.number }}
+  FLY_PREVIEW_DATABASE_NAME: stoppmo-db-pr-${{ github.event.number }}
+  FLY_CONFIG_PATH: ./infra/fly.toml
 
 jobs:
-  review_app:
+  create_apps:
+    if: github.event.action == 'opened' || github.event.action == 'reopened'
     runs-on: ubuntu-latest
     outputs:
-      url: ${{ steps.deploy.outputs.url }}
+      url: https://${{ env.FLY_PREVIEW_APP_NAME }}.fly.dev
     # Only run one deployment at a time per PR.
     concurrency:
       group: pr-${{ github.event.number }}
-
-    # Deploying apps with this "review" environment allows the URL for the app to be displayed in the PR UI.
-    # Feel free to change the name of this environment.
     environment:
       name: review
-      # The script in the `deploy` sets the URL output for each review app.
-      url: ${{ steps.deploy.outputs.url }}
-
+      url: https://${{ env.FLY_PREVIEW_APP_NAME }}.fly.dev
     steps:
-      - name: Get code
+      - name: Checkout Github repo
         uses: actions/checkout@v4
-
-      - name: Deploy PR app to Fly.io
-        id: deploy
-        uses: superfly/fly-pr-review-apps@1.2.1
+      - name: Create Database
+        uses: superfly/flyctl-actions@1.5
         with:
-          name: stoppmo-backend-pr-${{ github.event.number }} 
-          secrets: DATABASE_URL=${{ secrets.SANDBOX_DATABASE_URL }}
+          args:
+            'pg create --region ${{ env.FLY_REGION }} --vm-size shared-cpu-1x --name  ${{ env.FLY_PREVIEW_DATABASE_NAME }} --volume-size 5 --org ${{ env.FLY_ORG }} --initial-cluster-size 2'
+      - name: Create Review App
+        uses: superfly/flyctl-actions@1.1
+        with:
+          args: "apps create ${{ env.FLY_PREVIEW_APP_NAME }} --org ${{ env.FLY_ORG }}"
+      - name: Connect Database to Preview App
+        uses: superfly/flyctl-actions@1.5
+        env:
+          FLY_APP: ${{ env.FLY_PREVIEW_APP_NAME }}
+        with:
+          args: 'pg attach ${{ env.FLY_PREVIEW_DATABASE_NAME }} --app ${{ env.FLY_PREVIEW_APP_NAME }}'
+      - name: Deploy Preview App
+        uses: superfly/flyctl-actions@1.5
+        with:
+          args:
+            "deploy --app ${{ env.FLY_PREVIEW_APP_NAME }} -c ${{ env.FLY_CONFIG_PATH }}"
+  delete_apps:
+    if: github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Github Repo
+        uses: actions/checkout@v4
+      - name: Delete Database
+        uses: superfly/flyctl-actions@1.5
+        with:
+          args:
+            'apps destroy ${{ env.FLY_PREVIEW_DATABASE_NAME }} --yes'
+      - name: Delete Preview App
+        uses: superfly/flyctl-actions@1.5
+        with:
+          args:
+            'apps destroy ${{ env.FLY_PREVIEW_APP_NAME }} --yes'
+  redeploy_preview_app:
+    if: github.event.action == 'synchronize'
+    runs-on: ubuntu-latest
+    outputs:
+      url: https://${{ env.FLY_PREVIEW_APP_NAME }}.fly.dev
+    # Only run one deployment at a time per PR.
+    concurrency:
+      group: pr-${{ github.event.number }}
+    environment:
+      name: review
+      url: https://${{ env.FLY_PREVIEW_APP_NAME }}.fly.dev
+    steps:
+      - name: Checkout Github Repo
+        uses: actions/checkout@v4
+      - name: Redeploy Preview App
+        uses: superfly/flyctl-actions@1.5
+        with:
+          args:
+            "deploy --app ${{ env.FLY_PREVIEW_APP_NAME }} -c ${{ env.FLY_CONFIG_PATH }}"
