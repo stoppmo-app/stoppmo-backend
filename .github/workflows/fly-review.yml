@@ -14,7 +14,6 @@ env:
 
 jobs:
   db:
-    needs: [review_app]
     if: github.event.action == 'opened' || github.event.action == 'reopened'
     runs-on: ubuntu-latest
     steps:
@@ -39,14 +38,14 @@ jobs:
         uses: superfly/flyctl-actions@1.5
         with:
           args:
-            "deploy --region ${{ env.FLY_REGION }} --app ${{ env.FLY_PREVIEW_APP_NAME }} -c ${{ env.FLY_CONFIG_PATH }}"
+            "deploy --app ${{ env.FLY_PREVIEW_APP_NAME }} -c ${{ env.FLY_CONFIG_PATH }}"
       - name: Post link to PR Preview
         uses: actions-ecosystem/action-create-comment@v1
         with:
           github_token: ${{ secrets.github_token }}
           body: Your PR is deployed, see it [here](https://${{ env.FLY_PREVIEW_APP_NAME }}.fly.dev)
 
-  delete_db:
+  delete_apps:
     if: github.event.action == 'closed'
     runs-on: ubuntu-latest
     steps:
@@ -57,23 +56,24 @@ jobs:
         with:
           args:
             'apps destroy ${{ env.FLY_PREVIEW_DATABASE_NAME }} --yes'
-
-  review_app:
-    if: github.event.action != 'opened' || github.event.action != 'reopened'
-    runs-on: ubuntu-latest
-    outputs:
-      url: ${{ steps.deploy.outputs.url }}
-    concurrency:
-      group: pr-${{ github.event.number }}
-    environment:
-      name: review
-      url: ${{ steps.deploy.outputs.url }}
-    steps:
-      - name: Get code
-        uses: actions/checkout@v4
-      - name: Deploy PR app to Fly.io
-        id: deploy
-        uses: superfly/fly-pr-review-apps@1.2.1
+      - name: Delete App
+        uses: superfly/flyctl-actions@1.5
         with:
-          name: ${{ env.FLY_PREVIEW_APP_NAME }}
-          config: ${{ env.FLY_CONFIG_PATH }}
+          args:
+            'apps destroy ${{ env.FLY_PREVIEW_APP_NAME }} --yes'
+  redeploy_app:
+    if: github.event.action == 'synchronize'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Github Repo
+        uses: actions/checkout@v4
+      - name: Delete DB
+        uses: superfly/flyctl-actions@1.5
+        with:
+          args:
+            'apps destroy ${{ env.FLY_PREVIEW_DATABASE_NAME }} --yes'
+      - name: Redeploy Preview App
+        uses: superfly/flyctl-actions@1.5
+        with:
+          args:
+            "deploy --app ${{ env.FLY_PREVIEW_APP_NAME }} -c ${{ env.FLY_CONFIG_PATH }}"
