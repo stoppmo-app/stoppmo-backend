@@ -10,7 +10,7 @@ env:
   FLY_ORG: stoppmo-490
   FLY_PREVIEW_APP_NAME: stoppmo-backend-pr-${{ github.event.number }}
   FLY_PREVIEW_DATABASE_NAME: stoppmo-db-pr-${{ github.event.number }}
-  FLY_CONFIG_PATH: ./infra/fly.toml
+  FLY_CONFIG_PATH: ./infra/fly.review.toml
 
 jobs:
   create_apps:
