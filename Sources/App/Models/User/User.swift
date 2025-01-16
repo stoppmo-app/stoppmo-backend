@@ -11,7 +11,7 @@ enum Role: String, Codable {
     case admin, member
 }
 
-final class User: Model, @unchecked Sendable {
+final class User: Model, Authenticatable, @unchecked Sendable {
     static let schema = "users"
 
     @ID(key: .id)
