@@ -27,6 +27,9 @@ final class Badge: Model, @unchecked Sendable {
     @Timestamp(key: "updated_at", on: .update)
     var updatedAt: Date?
 
+    @Timestamp(key: "deleted_at", on: .delete)
+    var deletedAt: Date?
+
     init() {}
 
     init(
