@@ -29,6 +29,8 @@ struct UserController: RouteCollection {
     func createUser(req: Request) async throws -> UserDTO.GetUser {
         let user = try User.fromDTO(req.content.decode(UserDTO.CreateUser.self))
 
+        // TODO: add some two step verification to verify the email belongs to the creator
+
         try await user.save(on: req.db)
         return user.toDTO()
     }
