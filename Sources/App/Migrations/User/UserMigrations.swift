@@ -6,5 +6,5 @@
 import Fluent
 
 struct UserMigrations: MigrationsGroup {
-    var migrations: [any Migration] = [CreateUser(), CreateUserToken(), UserWithPassword1()]
+    var migrations: [any Migration] = [CreateUser(), CreateUserToken(), UserWithPassword1(), UserWithDeletedAt1()]
 }
