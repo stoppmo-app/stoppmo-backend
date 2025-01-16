@@ -11,7 +11,7 @@ enum Role: String, Codable {
     case admin, member
 }
 
-final class User: Model, Authenticatable, @unchecked Sendable {
+final class User: Model, @unchecked Sendable {
     static let schema = "users"
 
     @ID(key: .id)
@@ -28,6 +28,9 @@ final class User: Model, Authenticatable, @unchecked Sendable {
 
     @Field(key: "email")
     var email: String
+
+    @Field(key: "password_hash")
+    var passwordHash: String
 
     @Enum(key: "role")
     var role: Role
@@ -61,6 +64,7 @@ final class User: Model, Authenticatable, @unchecked Sendable {
         lastName: String,
         username: String,
         email: String,
+        passwordHash: String,
         role: Role,
         profilePictureURL: String,
         bio: String,
@@ -72,6 +76,7 @@ final class User: Model, Authenticatable, @unchecked Sendable {
         self.lastName = lastName
         self.username = username
         self.email = email
+        self.passwordHash = passwordHash
         self.role = role
         self.profilePictureURL = profilePictureURL
         self.bio = bio
@@ -97,11 +102,21 @@ final class User: Model, Authenticatable, @unchecked Sendable {
             lastName: dto.lastName,
             username: dto.username,
             email: dto.email,
+            passwordHash: dto.passwordHash,
             role: .member,
             profilePictureURL: dto.profilePictureURL,
             bio: dto.bio,
             phoneNumber: dto.phoneNumber,
             dateOfBirth: dto.dateOfBirth
         )
+    }
+}
+
+extension User: ModelAuthenticatable {
+    static let usernameKey = \User.$email
+    static let passwordHashKey = \User.$passwordHash
+
+    func verify(password: String) throws -> Bool {
+        try Bcrypt.verify(password, created: self.passwordHash)
     }
 }

@@ -37,8 +37,8 @@ final class UserBadge: Model, @unchecked Sendable {
         id: UUID? = nil,
         startedAt: Date,
         claimedAt: Date,
-        badgeID: Badge.IDValue,
-        userID: User.IDValue
+        badgeID: UUID,
+        userID: UUID
     ) {
         self.id = id
         self.startedAt = startedAt
