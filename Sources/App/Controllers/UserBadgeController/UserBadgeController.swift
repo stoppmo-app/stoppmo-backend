@@ -51,6 +51,7 @@ struct UserBadgeController: RouteCollection {
         guard let userID = req.parameters.get("userID", as: UUID.self) else {
             throw Abort(.notFound)
         }
+
         return try await UserBadge.query(on: req.db).filter(
             "user_id", .equal, userID
         ).all().map { $0.toDTO() }
