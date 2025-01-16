@@ -16,6 +16,15 @@ final class UserToken: Model, Content, @unchecked Sendable  {
     @Parent(key: "user_id")
     var user: User
 
+    @Timestamp(key: "created_at", on: .create)
+    var createdAt: Date?
+
+    @Timestamp(key: "updated_at", on: .update)
+    var updatedAt: Date?
+
+    @Timestamp(key: "deleted_at", on: .delete)
+    var deletedAt: Date?
+
     init() {}
 
     // expiresIn defalut value == 10 days (in seconds)
