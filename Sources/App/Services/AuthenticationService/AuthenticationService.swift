@@ -7,36 +7,59 @@ struct AuthenticationService {
     // TODO: add some two step verification to verify the email belongs to the creator
 
     func login(user: User) async throws -> String {
-        let token = try self.generateToken(for: user)
+        let token = try self.generateBearerToken(for: user)
         try await token.save(on: db)
         return token.value
     }
 
     func logout(user userID: UUID, req: Request) async throws {
         // TODO: send messages to message service here
-        try await self.removeOldTokens(for: userID)
+        try await self.removeOldBearerTokens(for: userID)
         req.auth.logout(User.self)
     }
 
-    func generateToken(for user: User) throws -> UserToken {
+    func generateBearerToken(for user: User) throws -> UserToken {
         try .init(
             value: [UInt8].random(count: 16).base64,
             userID: user.requireID()
         )
     }
 
-    func getUserFromToken(_ token: String) async throws -> User {
+    func getUserFromBearerAuthorization(_ bearer: BearerAuthorization) async throws -> User {
         // 1. Get token from db
-        let token = try await getToken(token)
-        // 2. validate token
+        let token = try await getBearerToken(bearer.token)
+
+        // 2. Validate token
         if token.isTokenValid() == false {
             throw Abort(.custom(code: 401, reasonPhrase: "Token Expired"))
         }
-        // 3. return user
+
+        // 3. Return user
         return token.user
     }
 
-    func getToken(_ token: String) async throws -> UserToken {
+    func getUserFromBasicAuthorization(_ basic: BasicAuthorization) async throws -> User {
+        // 1. Get user from db
+        guard let user = try await User
+            .query(on: db)
+            .filter(\.$username, .equal, basic.username)
+            .first()
+        else {
+            throw Abort(.notFound)
+        }
+
+        // 2. Verify password
+        let passwordCorrect = try Bcrypt.verify(basic.password, created: user.passwordHash)
+
+        // 3. Return user
+        if passwordCorrect == true {
+            return user
+        } else {
+            throw Abort(.unauthorized)
+        }
+    }
+
+    func getBearerToken(_ token: String) async throws -> UserToken {
         guard let userToken = try await UserToken
             .query(on: db)
             .filter(\.$value, .equal, token)
@@ -47,7 +70,7 @@ struct AuthenticationService {
         return userToken
     }
 
-    func removeOldTokens(for userID: UUID) async throws {
+    func removeOldBearerTokens(for userID: UUID) async throws {
         let tokens = try await UserToken
             .query(on: db)
             .filter(\.$user.$id, .equal, userID)

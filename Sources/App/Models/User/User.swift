@@ -99,13 +99,13 @@ final class User: Model, Authenticatable, @unchecked Sendable {
         )
     }
 
-    static func fromDTO(_ dto: UserDTO.CreateUser) -> User {
+    static func fromDTO(_ dto: UserDTO.CreateUser) throws -> User {
         .init(
             firstName: dto.firstName,
             lastName: dto.lastName,
             username: dto.username,
             email: dto.email,
-            passwordHash: dto.passwordHash,
+            passwordHash: try Bcrypt.hash(dto.password),
             role: .member,
             profilePictureURL: dto.profilePictureURL,
             bio: dto.bio,
