@@ -6,5 +6,5 @@
 import Fluent
 
 struct BadgeMigrations: MigrationsGroup {
-    var migrations: [any Migration] = [CreateBadge(), AddAllBadges(), BadgeWithDeletedAt1()]
+    var migrations: [any Migration] = [CreateBadge(), AddAllBadges(), BadgeWithDeletedAt1(), BadgeWithUniqueUnlockAfterDaysField1()]
 }

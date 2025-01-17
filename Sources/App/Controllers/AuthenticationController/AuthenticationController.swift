@@ -4,7 +4,7 @@ struct AuthenticationController: RouteCollection {
     func boot(routes: RoutesBuilder) throws {
         routes.group([
             UserBasicAuthenticator(),
-            User.guardMiddleware()
+            User.guardMiddleware(),
         ]) { basicProtected in
             basicProtected.post("login", use: self.login)
         }
@@ -15,7 +15,6 @@ struct AuthenticationController: RouteCollection {
         ]) { bearerProtected in
             bearerProtected.post("logout", use: self.logout)
         }
-
     }
 
     @Sendable
