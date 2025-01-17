@@ -11,7 +11,7 @@ enum Role: String, Codable {
     case admin, member
 }
 
-final class User: Model, @unchecked Sendable {
+final class User: Model, Authenticatable, @unchecked Sendable {
     static let schema = "users"
 
     @ID(key: .id)
@@ -112,14 +112,5 @@ final class User: Model, @unchecked Sendable {
             phoneNumber: dto.phoneNumber,
             dateOfBirth: dto.dateOfBirth
         )
-    }
-}
-
-extension User: ModelAuthenticatable {
-    static let usernameKey = \User.$email
-    static let passwordHashKey = \User.$passwordHash
-
-    func verify(password: String) throws -> Bool {
-        try Bcrypt.verify(password, created: self.passwordHash)
     }
 }

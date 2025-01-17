@@ -34,13 +34,10 @@ final class UserToken: Model, Content, @unchecked Sendable  {
         self.expiresAt = Date().addingTimeInterval(expiresIn)
         self.$user.id = userID
     }
-}
 
-extension UserToken: ModelTokenAuthenticatable {
-    static let valueKey = \UserToken.$value
-    static let userKey = \UserToken.$user
-
-    var isValid: Bool {
-        return AuthenticationService.isTokenValid(token: self)
+    func isTokenValid() -> Bool {
+        if self.expiresAt > Date() {
+            return true
+        }
     }
 }

@@ -2,13 +2,16 @@ import Vapor
 
 struct AuthenticationController: RouteCollection {
     func boot(routes: RoutesBuilder) throws {
-        let auth = routes.grouped([User.authenticator(), User.guardMiddleware()])
+        let auth = routes.grouped([
+            UserAuthenticator(),
+            User.guardMiddleware(),
+        ])
         auth.post("login", use: self.login)
         auth.post("logout", use: self.logout)
     }
 
     @Sendable
-    func login(req: Request) async throws -> UserToken {
+    func login(req: Request) async throws -> String {
         let authService = AuthenticationService(db: req.db)
 
         let user = try req.auth.require(User.self)
@@ -24,7 +27,7 @@ struct AuthenticationController: RouteCollection {
         else {
             return .badRequest
         }
-        try await authService.logout(user: userID)
+        try await authService.logout(user: userID, req: req)
         return .ok
     }
 }

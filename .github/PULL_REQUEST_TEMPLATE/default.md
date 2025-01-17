@@ -18,7 +18,7 @@
 
 <!-- Any notable link here that can aid in the exploration review of the PR, as well as context -->
 
-[ISSUE-ISSUEID](https://github.com/GetAutomaApp/AutomaInfraCore/issues/ISSUEID)
+[ISSUE-ISSUEID](https://github.com/stoppmo-app/stoppmo-backend/issues/ISSUEID)
 
 # Testing
 
