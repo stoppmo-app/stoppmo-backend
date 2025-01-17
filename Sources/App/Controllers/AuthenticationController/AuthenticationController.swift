@@ -2,12 +2,20 @@ import Vapor
 
 struct AuthenticationController: RouteCollection {
     func boot(routes: RoutesBuilder) throws {
-        let auth = routes.grouped([
-            UserAuthenticator(),
+        routes.group([
+            UserBasicAuthenticator(),
+            User.guardMiddleware()
+        ]) { basicProtected in
+            basicProtected.post("login", use: self.login)
+        }
+
+        routes.group([
+            UserBearerAuthenticator(),
             User.guardMiddleware(),
-        ])
-        auth.post("login", use: self.login)
-        auth.post("logout", use: self.logout)
+        ]) { bearerProtected in
+            bearerProtected.post("logout", use: self.logout)
+        }
+
     }
 
     @Sendable
