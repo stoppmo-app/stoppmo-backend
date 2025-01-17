@@ -8,6 +8,6 @@ import Fluent
 struct UserMigrations: MigrationsGroup {
     var migrations: [any Migration] = [
         CreateUser(), CreateUserToken(), UserWithPassword1(), UserWithDeletedAt1(),
-        UserTokenWithTimestamps1(), UserWithUniqueFields1(),
+        UserTokenWithTimestamps1(), UserWithUniqueFields1(), UserTokenWithExpiresAtField1(),
     ]
 }
