@@ -62,6 +62,8 @@ final class UserBadge: Model, @unchecked Sendable {
     }
 
     static func fromDTO(_ dto: UserBadgeDTO.CreateUserBadge) -> UserBadge {
-        .init(startedAt: dto.startedAt, claimedAt: dto.claimedAt, badgeID: dto.badgeID, userID: dto.userID)
+        .init(
+            startedAt: dto.startedAt, claimedAt: dto.claimedAt, badgeID: dto.badgeID,
+            userID: dto.userID)
     }
 }
