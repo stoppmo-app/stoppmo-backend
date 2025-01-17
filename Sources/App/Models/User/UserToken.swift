@@ -27,7 +27,7 @@ final class UserToken: Model, Content, @unchecked Sendable  {
 
     init() {}
 
-    // expiresIn defalut value == 10 days (in seconds)
+    // expiresIn default value == 10 days (in seconds)
     init(id: UUID? = nil, value: String, userID: User.IDValue, expiresIn: TimeInterval = 864000) {
         self.id = id
         self.value = value
@@ -41,6 +41,6 @@ extension UserToken: ModelTokenAuthenticatable {
     static let userKey = \UserToken.$user
 
     var isValid: Bool {
-        true
+        return AuthenticationService.isTokenValid(token: self)
     }
 }

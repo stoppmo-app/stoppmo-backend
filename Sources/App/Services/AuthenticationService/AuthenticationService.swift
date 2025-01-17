@@ -24,25 +24,8 @@ struct AuthenticationService {
         )
     }
 
-    func isTokenValid(token: UserToken, for user: User) async throws
-        -> Bool
-    {
-        guard let userID = user.id else {
-            throw Abort(.unauthorized)
-        }
-
-        guard
-            let token =
-                try await UserToken
-                .query(on: db)
-                .filter(\.$value, .equal, token.value)
-                .filter(\.$user.$id, .equal, userID)
-                .first()
-        else {
-            throw Abort(.unauthorized)
-        }
-
-        return token.expiresAt > Date()
+    static func isTokenValid(token: UserToken) -> Bool {
+        token.expiresAt > Date()
     }
 
     func removeOldTokens(for userID: UUID) async throws {
