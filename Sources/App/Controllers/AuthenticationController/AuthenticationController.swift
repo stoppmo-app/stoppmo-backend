@@ -2,10 +2,10 @@ import Vapor
 
 struct AuthenticationController: RouteCollection {
     func boot(routes: RoutesBuilder) throws {
-        routes.group([
+        routes.group(
             UserBasicAuthenticator(),
-            User.guardMiddleware(),
-        ]) { basicProtected in
+            User.guardMiddleware()
+        ) { basicProtected in
             basicProtected.post("login", use: self.login)
         }
 
@@ -19,6 +19,7 @@ struct AuthenticationController: RouteCollection {
 
     @Sendable
     func login(req: Request) async throws -> String {
+        print("Logging in....")
         let authService = AuthenticationService(db: req.db)
 
         let user = try req.auth.require(User.self)
