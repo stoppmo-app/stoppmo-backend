@@ -8,8 +8,6 @@ struct UserBearerAuthenticator: AsyncBearerAuthenticator {
         for request: Request
     ) async throws {
         let authService = AuthenticationService(db: request.db)
-        print("Getting user from bearer token")
-        print("Bearer Token: \(bearer.token)")
         let user = try await authService.getUserFromBearerAuthorization(bearer)
         request.auth.login(user)
     }

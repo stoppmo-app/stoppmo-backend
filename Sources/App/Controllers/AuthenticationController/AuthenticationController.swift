@@ -19,7 +19,6 @@ struct AuthenticationController: RouteCollection {
 
     @Sendable
     func login(req: Request) async throws -> String {
-        print("Logging in....")
         let authService = AuthenticationService(db: req.db)
 
         let user = try req.auth.require(User.self)
