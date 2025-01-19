@@ -16,6 +16,7 @@ struct AuthenticationService {
         // TODO: send messages to message service here
         try await self.removeOldBearerTokens(for: userID)
         req.auth.logout(User.self)
+
     }
 
     func generateBearerToken(for user: User) throws -> UserToken {
@@ -35,15 +36,17 @@ struct AuthenticationService {
         }
 
         // 3. Return user
-        return token.user
+        return try await token.$user.get(on: db)
     }
 
     func getUserFromBasicAuthorization(_ basic: BasicAuthorization) async throws -> User {
         // 1. Get user from db
-        guard let user = try await User
-            .query(on: db)
-            .filter(\.$username, .equal, basic.username)
-            .first()
+        guard
+            let user =
+                try await User
+                .query(on: db)
+                .filter(\.$username, .equal, basic.username)
+                .first()
         else {
             throw Abort(.notFound)
         }
@@ -60,10 +63,12 @@ struct AuthenticationService {
     }
 
     func getBearerToken(_ token: String) async throws -> UserToken {
-        guard let userToken = try await UserToken
-            .query(on: db)
-            .filter(\.$value, .equal, token)
-            .first()
+        guard
+            let userToken =
+                try await UserToken
+                .query(on: db)
+                .filter(\.$value, .equal, token)
+                .first()
         else {
             throw Abort(.custom(code: 401, reasonPhrase: "Token Not Found"))
         }
@@ -71,7 +76,8 @@ struct AuthenticationService {
     }
 
     func removeOldBearerTokens(for userID: UUID) async throws {
-        let tokens = try await UserToken
+        let tokens =
+            try await UserToken
             .query(on: db)
             .filter(\.$user.$id, .equal, userID)
             .all()
