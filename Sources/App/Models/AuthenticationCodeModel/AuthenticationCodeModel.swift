@@ -1,8 +1,6 @@
 import Fluent
 import Foundation
 
-// TODO: Create migrations for `AuthenticationCodeModel`
-// TODO: Rename all other models to end with the word `Model`, and all the instances where the model name is used
 // TODO: Create `RandomService` with a method called `randomInt` to generate a random integer (it should take a range as a param, with a default value)
 
 final class AuthenticationCodeModel: Model, @unchecked Sendable {

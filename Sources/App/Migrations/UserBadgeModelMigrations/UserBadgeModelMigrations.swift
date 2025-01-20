@@ -1,6 +1,6 @@
 import Fluent
 
-struct UserBadgeMigrations: MigrationsGroup {
+struct UserBadgeModelMigrations: MigrationsGroup {
     var migrations: [any Migration] = [
         CreateUserBadgeModel(), UserBadgeModelWithParentIDReferences1(),
         UserBadgeModelWithDeletedAt1(),

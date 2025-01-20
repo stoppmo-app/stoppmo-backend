@@ -37,9 +37,11 @@ public func configure(_ app: Application) async throws {
     app.views.use(.leaf)
 
     // add all migrations
-    app.migrations.addGroup(UserMigrations())
-    app.migrations.addGroup(BadgeMigrations())
-    app.migrations.addGroup(UserBadgeMigrations())
+    app.migrations.addGroup(UserModelMigrations())
+    app.migrations.addGroup(UserTokenModelMigrations())
+    app.migrations.addGroup(BadgeModelMigrations())
+    app.migrations.addGroup(UserBadgeModelMigrations())
+    app.migrations.addGroup(AuthenticationCodeModelMigrations())
 
     // Automatically run migrations on database
     try await app.autoMigrate()
