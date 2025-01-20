@@ -6,15 +6,18 @@ struct AuthenticationService {
 
     // TODO: add some two step verification to verify the email belongs to the creator
 
-    func sendLoginCode(email: String) async throws {
+    func sendLoginCode(email: String) async throws
         // 1. Do some rate limit checks, e.g. user may only send a code once every 5 minutes and a total of 10 in a 24 hour time period
         // - If user reaches rate limit, send appropriate response like "You sent too many two factor authentication codes today. Try again tomorrow" or "try again in an hour"
         // - Send an email to the user once they can send a code again to login.
+        // if let rateLimitMessage = try await RateLimitService(db: db).authEmailsSent(email: email) {
+        //     throw CustomErrors.rateLimit(rateLimitMessage)
+        // }
 
         // 2. Send login code to user email
         // - save code to database (so that the rate limit checks above will work accurately)
         // - code must have an expiration date, meaning it will only be valid for let's say 5 minutes
-    }
+
 
     func login(user: User) async throws -> String {
         let token = try self.generateBearerToken(for: user)
