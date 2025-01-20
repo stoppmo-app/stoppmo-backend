@@ -2,19 +2,27 @@ import Vapor
 
 struct AuthenticationController: RouteCollection {
     func boot(routes: RoutesBuilder) throws {
-        routes.group(
+        let auth = routes.grouped("auth")
+        auth.group(
             UserBasicAuthenticator(),
             User.guardMiddleware()
         ) { basicProtected in
             basicProtected.post("login", use: self.login)
+            basicProtected.post("login-code", use: self.sendLoginCode)
         }
 
-        routes.group([
-            UserBearerAuthenticator(),
-            User.guardMiddleware(),
-        ]) { bearerProtected in
+        auth.group(UserBearerAuthenticator(), User.guardMiddleware()) { bearerProtected in
             bearerProtected.post("logout", use: self.logout)
         }
+    }
+
+    @Sendable
+    func sendLoginCode(req: Request) async throws -> HTTPStatus {
+        let authService = AuthenticationService(db: req.db)
+
+        let userEmail = try req.auth.require(User.self).email
+        try await authService.sendLoginCode(email: userEmail)
+        return .ok
     }
 
     @Sendable
