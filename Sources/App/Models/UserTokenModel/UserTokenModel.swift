@@ -29,7 +29,7 @@ final class UserTokenModel: Model, Content, @unchecked Sendable {
 
     // expiresIn default value == 10 days (in seconds)
     init(
-        id: UUID? = nil, value: String, userID: UserModel.IDValue, expiresIn: TimeInterval = 864000
+        id: UUID? = nil, value: String, userID: UUID, expiresIn: TimeInterval = 864000
     ) {
         self.id = id
         self.value = value
