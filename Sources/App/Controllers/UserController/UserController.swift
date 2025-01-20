@@ -22,12 +22,12 @@ struct UserController: RouteCollection {
 
     @Sendable
     func getAllUsers(req: Request) async throws -> [UserDTO.GetUser] {
-        try await User.query(on: req.db).all().map { $0.toDTO() }
+        try await UserModel.query(on: req.db).all().map { $0.toDTO() }
     }
 
     @Sendable
     func createUser(req: Request) async throws -> UserDTO.GetUser {
-        let user = try User.fromDTO(req.content.decode(UserDTO.CreateUser.self))
+        let user = try UserModel.fromDTO(req.content.decode(UserDTO.CreateUser.self))
 
         // TODO: add some two step verification to verify the email belongs to the creator
 
@@ -37,7 +37,10 @@ struct UserController: RouteCollection {
 
     @Sendable
     func getUserInfo(req: Request) async throws -> UserDTO.GetUser {
-        guard let user = try await User.find(req.parameters.get("userID", as: UUID.self), on: req.db) else {
+        guard
+            let user = try await UserModel.find(
+                req.parameters.get("userID", as: UUID.self), on: req.db)
+        else {
             throw Abort(.notFound)
         }
         return user.toDTO()
@@ -45,7 +48,10 @@ struct UserController: RouteCollection {
 
     @Sendable
     func deleteUser(req: Request) async throws -> HTTPStatus {
-        guard let user = try await User.find(req.parameters.get("userID", as: UUID.self), on: req.db) else {
+        guard
+            let user = try await UserModel.find(
+                req.parameters.get("userID", as: UUID.self), on: req.db)
+        else {
             throw Abort(.notFound)
         }
 
@@ -56,7 +62,10 @@ struct UserController: RouteCollection {
     @Sendable
     func updateUser(req: Request) async throws -> UserDTO.GetUser {
         let updatedUser = try req.content.decode(UserDTO.UpdateUser.self)
-        guard let user = try await User.find(req.parameters.get("userID", as: UUID.self), on: req.db) else {
+        guard
+            let user = try await UserModel.find(
+                req.parameters.get("userID", as: UUID.self), on: req.db)
+        else {
             throw Abort(.notFound)
         }
 

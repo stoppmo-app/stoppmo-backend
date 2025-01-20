@@ -24,7 +24,7 @@ struct UserBadgeController: RouteCollection {
     @Sendable
     func getUserBadgeInfo(req: Request) async throws -> UserBadgeDTO.GetUserBadge {
         guard
-            let userBadge = try await UserBadge.find(
+            let userBadge = try await UserBadgeModel.find(
                 req.parameters.get("badgeID", as: UUID.self), on: req.db
             )
         else {
@@ -36,7 +36,7 @@ struct UserBadgeController: RouteCollection {
     @Sendable
     func deleteUserBadge(req: Request) async throws -> HTTPStatus {
         guard
-            let userBadge = try await UserBadge.find(
+            let userBadge = try await UserBadgeModel.find(
                 req.parameters.get("badgeID", as: UUID.self), on: req.db
             )
         else {
@@ -52,14 +52,15 @@ struct UserBadgeController: RouteCollection {
             throw Abort(.notFound)
         }
 
-        return try await UserBadge.query(on: req.db).filter(
+        return try await UserBadgeModel.query(on: req.db).filter(
             "user_id", .equal, userID
         ).all().map { $0.toDTO() }
     }
 
     @Sendable
     func createUserBadge(req: Request) async throws -> UserBadgeDTO.GetUserBadge {
-        let userBadge = try UserBadge.fromDTO(req.content.decode(UserBadgeDTO.CreateUserBadge.self))
+        let userBadge = try UserBadgeModel.fromDTO(
+            req.content.decode(UserBadgeDTO.CreateUserBadge.self))
         try await userBadge.save(on: req.db)
         return userBadge.toDTO()
     }
@@ -69,7 +70,7 @@ struct UserBadgeController: RouteCollection {
         let updatedUserBadge = try req.content.decode(UserBadgeDTO.UpdateUserBadge.self)
 
         guard
-            let userBadge = try await UserBadge.find(
+            let userBadge = try await UserBadgeModel.find(
                 req.parameters.get("badgeID", as: UUID.self), on: req.db
             )
         else {
@@ -93,8 +94,9 @@ struct UserBadgeController: RouteCollection {
             throw Abort(.notFound)
         }
 
-        return try await UserBadge.query(on: req.db).filter("badge_id", .equal, badgeID).all().map {
-            $0.toDTO()
-        }
+        return try await UserBadgeModel.query(on: req.db).filter("badge_id", .equal, badgeID).all()
+            .map {
+                $0.toDTO()
+            }
     }
 }
