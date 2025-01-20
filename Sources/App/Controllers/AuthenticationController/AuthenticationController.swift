@@ -5,13 +5,13 @@ struct AuthenticationController: RouteCollection {
         let auth = routes.grouped("auth")
         auth.group(
             UserBasicAuthenticator(),
-            User.guardMiddleware()
+            UserModel.guardMiddleware()
         ) { basicProtected in
             basicProtected.post("login", use: self.login)
             basicProtected.post("login-code", use: self.sendLoginCode)
         }
 
-        auth.group(UserBearerAuthenticator(), User.guardMiddleware()) { bearerProtected in
+        auth.group(UserBearerAuthenticator(), UserModel.guardMiddleware()) { bearerProtected in
             bearerProtected.post("logout", use: self.logout)
         }
     }
@@ -20,7 +20,7 @@ struct AuthenticationController: RouteCollection {
     func sendLoginCode(req: Request) async throws -> HTTPStatus {
         let authService = AuthenticationService(db: req.db)
 
-        let userEmail = try req.auth.require(User.self).email
+        let userEmail = try req.auth.require(UserModel.self).email
         try await authService.sendLoginCode(email: userEmail)
         return .ok
     }
@@ -29,7 +29,7 @@ struct AuthenticationController: RouteCollection {
     func login(req: Request) async throws -> String {
         let authService = AuthenticationService(db: req.db)
 
-        let user = try req.auth.require(User.self)
+        let user = try req.auth.require(UserModel.self)
         return try await authService.login(user: user)
     }
 
@@ -38,7 +38,7 @@ struct AuthenticationController: RouteCollection {
         let authService = AuthenticationService(db: req.db)
 
         guard
-            let userID = try req.auth.require(User.self).id
+            let userID = try req.auth.require(UserModel.self).id
         else {
             return .badRequest
         }

@@ -3,9 +3,10 @@ import Foundation
 
 // TODO: Create migrations for `AuthenticationCodeModel`
 // TODO: Rename all other models to end with the word `Model`, and all the instances where the model name is used
+// TODO: Create `RandomService` with a method called `randomInt` to generate a random integer (it should take a range as a param, with a default value)
 
 final class AuthenticationCodeModel: Model, @unchecked Sendable {
-    static let schema = "authentication_codes"
+    static let schema = "auth_codes"
 
     @ID(key: .id)
     var id: UUID?
@@ -17,7 +18,7 @@ final class AuthenticationCodeModel: Model, @unchecked Sendable {
     var email: String
 
     @Parent(key: "user_id")
-    var user: User
+    var user: UserModel
 
     @Field(key: "expires_at")
     var expiresAt: Date
@@ -38,7 +39,7 @@ final class AuthenticationCodeModel: Model, @unchecked Sendable {
         value: Int,
         email: String,
         expiresIn: TimeInterval = 300,
-        userID: User.IDValue
+        userID: UserModel.IDValue
     ) {
         self.id = id
         self.value = value

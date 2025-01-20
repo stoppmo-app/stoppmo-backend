@@ -1,7 +1,7 @@
 import Vapor
 
 struct UserBearerAuthenticator: AsyncBearerAuthenticator {
-    typealias User = App.User
+    typealias UserModel = App.UserModel
 
     func authenticate(
         bearer: BearerAuthorization,
@@ -14,7 +14,7 @@ struct UserBearerAuthenticator: AsyncBearerAuthenticator {
 }
 
 struct UserBasicAuthenticator: AsyncBasicAuthenticator {
-    typealias User = App.User
+    typealias UserModel = App.UserModel
 
     func authenticate(
         basic: BasicAuthorization,
