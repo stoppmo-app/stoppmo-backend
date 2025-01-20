@@ -37,7 +37,7 @@ final class AuthenticationCodeModel: Model, @unchecked Sendable {
         value: Int,
         email: String,
         expiresIn: TimeInterval = 300,
-        userID: UserModel.IDValue
+        userID: UUID
     ) {
         self.id = id
         self.value = value
