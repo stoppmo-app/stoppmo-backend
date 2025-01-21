@@ -42,6 +42,7 @@ public func configure(_ app: Application) async throws {
     app.migrations.addGroup(BadgeModelMigrations())
     app.migrations.addGroup(UserBadgeModelMigrations())
     app.migrations.addGroup(AuthenticationCodeModelMigrations())
+    app.migrations.addGroup(EmailMessageModelMigrations())
 
     // Automatically run migrations on database
     try await app.autoMigrate()
