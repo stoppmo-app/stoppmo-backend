@@ -1,6 +1,7 @@
 import Fluent
 import Foundation
 
+// TODO: Create migration
 // TODO: For migration, create enum. Here is an example enum:
 // let role = try await database.enum("user_role")
 //     .case("member")
