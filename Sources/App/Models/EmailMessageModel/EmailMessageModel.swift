@@ -26,6 +26,12 @@ final class EmailMessageModel: Model, @unchecked Sendable {
     @Parent(key: "sent_to")
     var user: UserModel
 
+    @Field(key: "sent_to_email")
+    var sentToEmail: String
+
+    @Field(key: "sent_from_email")
+    var sentFromEmail: String
+
     @Timestamp(key: "created_at", on: .create)
     var createdAt: Date?
 
@@ -41,11 +47,15 @@ final class EmailMessageModel: Model, @unchecked Sendable {
         id: UUID? = nil,
         messageType: EmailMessageType,
         sentAt: Date,
-        sentTo: UUID
+        sentTo: UUID,
+        sentToEmail: String,
+        sentFromEmail: String
     ) {
         self.id = id
         self.messageType = messageType
         self.sentAt = sentAt
+        self.sentToEmail = sentToEmail
+        self.sentFromEmail = sentFromEmail
         self.$user.id = sentTo
     }
 }

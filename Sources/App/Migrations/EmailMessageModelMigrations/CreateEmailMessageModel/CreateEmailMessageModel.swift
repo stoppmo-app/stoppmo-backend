@@ -14,6 +14,6 @@ struct CreateEmailMessageModel: AsyncMigration {
     }
 
     func revert(on database: Database) async throws {
-        try await database.schema("mail_messages").delete()
+        try await database.schema("email_messages").delete()
     }
 }
