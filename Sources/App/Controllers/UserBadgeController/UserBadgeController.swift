@@ -53,7 +53,7 @@ struct UserBadgeController: RouteCollection {
         }
 
         return try await UserBadgeModel.query(on: req.db).filter(
-            \.$user.$id, .equal, userID
+            "user_id", .equal, userID
         ).all().map { $0.toDTO() }
     }
 

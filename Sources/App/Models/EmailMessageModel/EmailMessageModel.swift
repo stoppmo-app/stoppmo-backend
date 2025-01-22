@@ -1,13 +1,6 @@
 import Fluent
 import Foundation
 
-// TODO: Create migration
-// TODO: For migration, create enum. Here is an example enum:
-// let role = try await database.enum("user_role")
-//     .case("member")
-//     .case("admin")
-//     .create()
-
 final class EmailMessageModel: Model, @unchecked Sendable {
     static let schema = "email_messages"
 
