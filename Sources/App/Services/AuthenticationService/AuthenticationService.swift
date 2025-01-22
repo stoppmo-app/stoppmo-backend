@@ -4,19 +4,26 @@ import Vapor
 struct AuthenticationService {
     let db: Database
 
-    // TODO: add some two step verification to verify the email belongs to the creator
+    func sendAuthCode(email: String, messageType: EmailMessageType) async throws {
+        let emailRateLimitService = RateLimitService.emails(.init(db: db))
+        let rateLimitResponse = try await emailRateLimitService.authEmailsSent(
+            email: email, messageType: messageType)
+        if rateLimitResponse.limitReached == true {
+            throw Abort(
+                .custom(
+                    code: 429,
+                    reasonPhrase: rateLimitResponse.message ?? "Auth Emails Limit Reached")
+            )
+        }
+        // TODO: Send authentication code to email
+    }
 
     func sendLoginCode(email: String) async throws {
-        // 1. Do some rate limit checks, e.g. user may only send a code once every 5 minutes and a total of 10 in a 24 hour time period
-        // - If user reaches rate limit, send appropriate response like "You sent too many two factor authentication codes today. Try again tomorrow" or "try again in an hour"
-        // - Send an email to the user once they can send a code again to login.
-        // if let rateLimitMessage = try await RateLimitService(db: db).authEmailsSent(email: email) {
-        //     throw CustomErrors.rateLimit(rateLimitMessage)
-        // }
+        return try await sendAuthCode(email: email, messageType: .authLogin)
+    }
 
-        // 2. Send login code to user email
-        // - save code to database (so that the rate limit checks above will work accurately)
-        // - code must have an expiration date, meaning it will only be valid for let's say 5 minutes
+    func sendRegisterCode(email: String) async throws {
+        return try await sendAuthCode(email: email, messageType: .authCreateAccount)
     }
 
     func login(user: UserModel) async throws -> String {

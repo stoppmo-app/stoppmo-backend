@@ -6,23 +6,24 @@ struct EmailRateLimitService {
 
     func emailsSent(
         email: String,
-        intervalRateLimit: TimeInterval = 300,
-        dailyRateLimit: Int = 10,
+        intervalRateLimit: TimeInterval,
+        dailyRateLimit: Int,
         messageTypes: [EmailMessageType],
-        intervalRateLimitReachedMessage: String?,
-        dailyRateLimitReachedMessage: String?
+        intervalRateLimitReachedMessage: EmailIntervalRateLimitMessage,
+        dailyRateLimitReachedMessage: EmailDailyRateLimitMessage
     ) async throws -> GenericRateLimitResponse {
-        let dailyRateLimit = try await self.emailsSentDailyRateLimit(
+        let dailyRateLimitResponse = try await self.emailsSentDailyRateLimit(
             email: email, messageTypes: messageTypes, limit: dailyRateLimit,
-            message: dailyRateLimitReachedMessage)
-        if dailyRateLimit.limitReached == true {
-            return dailyRateLimit
+            message: intervalRateLimitReachedMessage.getMessage())
+        if dailyRateLimitResponse.limitReached == true {
+            return dailyRateLimitResponse
         }
 
-        let intervalRateLimit = try await self.emailsSentIntervalLimit(
-            email: email, limit: intervalRateLimit, message: intervalRateLimitReachedMessage)
-        if intervalRateLimit.limitReached == true {
-            return intervalRateLimit
+        let intervalRateLimitResponse = try await self.emailsSentIntervalLimit(
+            email: email, limit: intervalRateLimit,
+            message: intervalRateLimitReachedMessage.getMessage())
+        if intervalRateLimitResponse.limitReached == true {
+            return intervalRateLimitResponse
         }
         return .init(limitReached: false)
     }
@@ -31,8 +32,9 @@ struct EmailRateLimitService {
         email: String,
         messageTypes: [EmailMessageType],
         limit: Int,
-        message: String?
+        message: String
     ) async throws -> GenericRateLimitResponse {
+
         if try await EmailMessageModel
             .query(on: db)
             .filter(\.$sentToEmail == email)
@@ -43,9 +45,7 @@ struct EmailRateLimitService {
         {
             return .init(
                 limitReached: true,
-                message:
-                    message
-                    ?? "Too many emails sent for today. Try again in 24 hours."
+                message: message
             )
         }
         return .init(
@@ -56,7 +56,7 @@ struct EmailRateLimitService {
     private func emailsSentIntervalLimit(
         email: String,
         limit: TimeInterval,
-        message: String?
+        message: String
     ) async throws -> GenericRateLimitResponse {
         guard
             let latestSentAt =
@@ -75,9 +75,29 @@ struct EmailRateLimitService {
             return .init(
                 limitReached: rateLimited,
                 message: message
-                    ?? "Rate limit reached for sending emails. Try again in \(limit) seconds."
             )
         }
         return .init(limitReached: false)
+    }
+
+    public func authEmailsSent(email: String, messageType: EmailMessageType) async throws
+        -> GenericRateLimitResponse
+    {
+        let intervalRateLimit = 100
+        let dailyRateLimit = 20
+        let rateLimitResponse = try await self.emailsSent(
+            email: email,
+            intervalRateLimit: TimeInterval(intervalRateLimit),
+            dailyRateLimit: dailyRateLimit,
+            messageTypes: [messageType],
+            intervalRateLimitReachedMessage: .fromEmailMessageType(
+                messageType: messageType,
+                limit: intervalRateLimit
+            ),
+            dailyRateLimitReachedMessage: .fromEmailMessageType(
+                messageType: messageType,
+                limit: dailyRateLimit
+            ))
+        return rateLimitResponse
     }
 }
