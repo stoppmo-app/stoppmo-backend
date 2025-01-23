@@ -18,16 +18,16 @@ struct AuthenticationController: RouteCollection {
 
     @Sendable
     func sendLoginCode(req: Request) async throws -> HTTPStatus {
-        let authService = AuthenticationService(db: req.db)
+        let authService = AuthenticationService(db: req.db, client: req.client, logger: req.logger)
 
         let userEmail = try req.auth.require(UserModel.self).email
-        try await authService.sendLoginCode(email: userEmail)
-        return .ok
+        let response = try await authService.sendLoginCode(email: userEmail)
+        return .custom(code: UInt(response.status.code), reasonPhrase: response.status.description)
     }
 
     @Sendable
     func login(req: Request) async throws -> String {
-        let authService = AuthenticationService(db: req.db)
+        let authService = AuthenticationService(db: req.db, client: req.client, logger: req.logger)
 
         let user = try req.auth.require(UserModel.self)
         return try await authService.login(user: user)
@@ -35,7 +35,7 @@ struct AuthenticationController: RouteCollection {
 
     @Sendable
     func logout(req: Request) async throws -> HTTPStatus {
-        let authService = AuthenticationService(db: req.db)
+        let authService = AuthenticationService(db: req.db, client: req.client, logger: req.logger)
 
         guard
             let userID = try req.auth.require(UserModel.self).id

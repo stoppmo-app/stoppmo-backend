@@ -7,7 +7,7 @@ struct EmailService {
     let logger: Logger
 
     func sendEmail(
-        to email: String, message: String, senderAccountID: UUID, content: SendEmailPayload
+        senderType: EmailSenderType, content: SendEmailPayload
     )
         async throws -> SendEmailResponse
     {
@@ -17,7 +17,9 @@ struct EmailService {
             logger.error("ZOHO_ACCESS_TOKEN not found in environment.")
             throw Abort(.badRequest)
         }
-        let url = URI(path: "https://mail.zoho.com/api/accounts/\(senderAccountID)/messages")
+
+        let senderEmail = senderType.getSenderEmail()
+        let url = URI(path: "https://mail.zoho.com/api/accounts/\(senderEmail)/messages")
         let response = try await client.post(url) { req in
             try req.content.encode(content)
             let auth = BearerAuthorization(token: zohoAccessToken)

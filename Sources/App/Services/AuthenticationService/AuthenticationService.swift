@@ -3,8 +3,20 @@ import Vapor
 
 struct AuthenticationService {
     let db: Database
+    let client: Client
+    let logger: Logger
 
-    func sendAuthCode(email: String, messageType: EmailMessageType) async throws {
+    func sendLoginCode(email: String) async throws -> SendEmailResponse {
+        return try await sendAuthCode(email: email, messageType: .authLogin)
+    }
+
+    func sendRegisterCode(email: String) async throws -> SendEmailResponse {
+        return try await sendAuthCode(email: email, messageType: .authCreateAccount)
+    }
+
+    private func sendAuthCode(email: String, messageType: EmailMessageType) async throws
+        -> SendEmailResponse
+    {
         let emailRateLimitService = RateLimitService.emails(.init(db: db))
         let rateLimitResponse = try await emailRateLimitService.authEmailsSent(
             email: email, messageType: messageType)
@@ -15,15 +27,10 @@ struct AuthenticationService {
                     reasonPhrase: rateLimitResponse.message ?? "Auth Emails Limit Reached")
             )
         }
-        // TODO: Send authentication code to email
-    }
-
-    func sendLoginCode(email: String) async throws {
-        return try await sendAuthCode(email: email, messageType: .authLogin)
-    }
-
-    func sendRegisterCode(email: String) async throws {
-        return try await sendAuthCode(email: email, messageType: .authCreateAccount)
+        let emailService = EmailService(db: db, client: client, logger: logger)
+        return try await emailService.sendEmail(
+            senderType: .authentication,
+            content: .fromTemplate(.authCode(code: Int.random(in: 0..<100000)), to: email))
     }
 
     func login(user: UserModel) async throws -> String {
