@@ -59,10 +59,35 @@ struct AuthenticationService {
             sentEmailZohoMailResponse: sendEmailResponse.sentEmailZohoMailResponse)
     }
 
-    func login(user: UserModel) async throws -> String {
+    func login(user: UserModel, authCode code: Int) async throws -> String {
+        guard
+            let authCode = try await getAuthCode(code)
+        else {
+            throw Abort(.custom(code: 401, reasonPhrase: "Auth Code Invalid"))
+        }
+
+        let codeExpired = try await isAuthCodeExpired(authCode)
+        if codeExpired == true {
+            throw Abort(.custom(code: 401, reasonPhrase: "Auth Code Expired"))
+        }
+
         let token = try self.generateBearerToken(for: user)
         try await token.save(on: db)
+
         return token.value
+    }
+
+    private func getAuthCode(_ code: Int) async throws -> AuthenticationCodeModel? {
+        let code =
+            try await AuthenticationCodeModel
+            .query(on: db)
+            .filter(\.$value == code)
+            .first()
+        return code
+    }
+
+    private func isAuthCodeExpired(_ code: AuthenticationCodeModel) async throws -> Bool {
+        return code.expiresAt >= Date()
     }
 
     func logout(user userID: UUID, req: Request) async throws {
