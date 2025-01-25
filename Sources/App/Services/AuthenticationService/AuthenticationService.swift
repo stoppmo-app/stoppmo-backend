@@ -17,9 +17,10 @@ struct AuthenticationService {
     private func sendAuthCode(email: String, messageType: EmailMessageType) async throws
         -> SendZohoMailEmailResponse
     {
-        let emailRateLimitService = RateLimitService.emails(.init(db: db))
+        let emailRateLimitService = RateLimitService.emails(.init(db: db, logger: logger))
         let rateLimitResponse = try await emailRateLimitService.authEmailsSent(
             email: email, messageType: messageType)
+
         if rateLimitResponse.limitReached == true {
             throw Abort(
                 .custom(

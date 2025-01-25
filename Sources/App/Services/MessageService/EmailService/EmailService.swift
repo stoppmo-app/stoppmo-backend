@@ -9,14 +9,14 @@ struct EmailService {
 
     public func sendEmail(
         senderType: EmailSenderType, content: SendZohoMailEmailPayload, maxRetries: Int = 5,
-        token zohoAccessToken: UUID? = nil
+        token zohoAccessToken: String? = nil
     )
         async throws -> SendZohoMailEmailResponse
     {
         // TODO: Use Redis or the database to store the latest generated token
         // Get that token. If it does not work, generate a new token and delete the previous ones
 
-        var token: UUID
+        var token: String
         if let zohoAccessToken {
             token = zohoAccessToken
         } else {
@@ -30,10 +30,16 @@ struct EmailService {
             throw Abort(.internalServerError)
         }
 
-        let url = URI(path: "\(zohoMailAPIBaseUrl)/accounts/\(senderEmailID)/messages")
+        let url = URI(string: "\(zohoMailAPIBaseUrl)/accounts/\(senderEmailID)/messages")
+
+        let fromAddress = content.fromAddress
+        let toAddress = content.toAddress
+
+        logger.info("Sending an email from '\(fromAddress)' to '\(toAddress)'")
+
         let response = try await client.post(url) { req in
             try req.content.encode(content)
-            let auth = BearerAuthorization(token: token.uuidString)
+            let auth = BearerAuthorization(token: token)
             req.headers.bearerAuthorization = auth
         }
 
@@ -55,42 +61,40 @@ struct EmailService {
                 token: refreshAndGetNewZohoAccessToken())
         }
     }
-
     // TODO: implement function logic
-    private func refreshAndGetNewZohoAccessToken() async throws -> UUID {
-        let url = URI(path: "https://accounts.zoho.com/oauth/v2/token")
+    private func refreshAndGetNewZohoAccessToken() async throws -> String {
+        let url = URI(string: "https://accounts.zoho.com/oauth/v2/token")
 
         guard
-            let clientIDString = Environment.get("ZOHO_CLIENT_ID"),
-            let clientID = UUID(uuidString: clientIDString)
+            let clientID = Environment.get("ZOHO_CLIENT_ID")
         else {
             logger.error("'ZOHO_CLIENT_ID' environment variable not found.")
             throw Abort(.internalServerError)
         }
         guard
-            let clientTokenString = Environment.get("ZOHO_CLIENT_TOKEN"),
-            let clientToken = UUID(uuidString: clientTokenString)
+            let clientSecret = Environment.get("ZOHO_CLIENT_SECRET")
         else {
-            logger.error("'ZOHO_CLIENT_TOKEN' environment variable not found.")
+            logger.error("'ZOHO_CLIENT_SECRET' environment variable not found.")
             throw Abort(.internalServerError)
         }
         guard
-            let refreshTokenString = Environment.get("ZOHO_REFRESH_TOKEN"),
-            let refreshToken = UUID(uuidString: refreshTokenString)
+            let refreshToken = Environment.get("ZOHO_REFRESH_TOKEN")
         else {
             logger.error("'ZOHO_REFRESH_TOKEN' environment variable not found.")
             throw Abort(.internalServerError)
         }
-
         let content = RefreshZohoMailAccessTokenPayload(
-            client_id: clientID, client_token: clientToken, refresh_token: refreshToken,
-            grant_type: .refreshToken)
+            client_id: clientID, client_secret: clientSecret, refresh_token: refreshToken,
+            // grant_type: .refreshToken)
+            grant_type: "refresh_token")
 
         let response = try await client.post(url) { req in
-            try req.content.encode(content)
+            try req.content.encode(content, as: .formData)
         }
 
         let responseBodyJSON = try response.content.decode(RefreshZohoMailAccessTokenResponse.self)
-        return responseBodyJSON.access_token
+        let accessToken = responseBodyJSON.access_token
+        return accessToken
     }
+
 }

@@ -7,7 +7,7 @@ final class EmailMessageModel: Model, @unchecked Sendable {
     @ID(key: .id)
     var id: UUID?
 
-    @Field(key: "message_type")
+    @Enum(key: "message_type")
     var messageType: EmailMessageType
 
     @Field(key: "message")

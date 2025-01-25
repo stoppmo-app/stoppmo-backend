@@ -21,6 +21,10 @@ services:
     environment:
       <<: *shared_environment
       DEV_CONTAINER_PORT: ${DEV_CONTAINER_PORT}
+      ZOHO_CLIENT_ID: ${ZOHO_CLIENT_ID}
+      ZOHO_CLIENT_SECRET: ${ZOHO_CLIENT_SECRET}
+      ZOHO_REFRESH_TOKEN: ${ZOHO_REFRESH_TOKEN}
+      ZOHO_MAIL_AUTH_SENDER_ID: ${ZOHO_MAIL_AUTH_SENDER_ID}
     depends_on:
       db:
         condition: service_healthy
