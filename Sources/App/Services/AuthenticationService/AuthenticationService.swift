@@ -6,12 +6,19 @@ struct AuthenticationService {
     let client: Client
     let logger: Logger
 
-    func sendLoginCode(email: String) async throws -> SendAuthCodeResponse {
+    public func sendLoginCode(email: String) async throws -> SendAuthCodeResponse {
         return try await sendAuthCode(email: email, messageType: .authLogin)
     }
 
-    func sendRegisterCode(email: String) async throws -> SendAuthCodeResponse {
+    public func sendRegisterCode(email: String) async throws -> SendAuthCodeResponse {
         return try await sendAuthCode(email: email, messageType: .authCreateAccount)
+    }
+
+    public func saveAuthCode(code: Int, userEmail: String, userID: UUID)
+        async throws
+    {
+        let authCode = AuthenticationCodeModel(value: code, email: userEmail, userID: userID)
+        try await authCode.save(on: db)
     }
 
     private func sendAuthCode(email: String, messageType: EmailMessageType, code: Int? = nil)

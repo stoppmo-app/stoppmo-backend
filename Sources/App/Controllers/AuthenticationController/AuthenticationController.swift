@@ -20,14 +20,21 @@ struct AuthenticationController: RouteCollection {
     func sendLoginCode(req: Request) async throws -> HTTPStatus {
         let authService = AuthenticationService(db: req.db, client: req.client, logger: req.logger)
 
-        // 1. Send email
-        let userEmail = try req.auth.require(UserModel.self).email
-        // let sendLoginCodeResponse = try await authService.sendLoginCode(email: userEmail)
-        let _ = try await authService.sendLoginCode(email: userEmail) // Remove this line
+        let user = try req.auth.require(UserModel.self)
+        let userEmail = user.email
+        let sendLoginCodeResponse = try await authService.sendLoginCode(email: userEmail)
 
-        // 2. Save code
-        // TODO: create this method
-        // authService.saveLoginCode()
+        guard
+            let userID = user.id
+        else {
+            req.logger.error(
+                "Failed to get user ID when saving auth code for user with email '\(userEmail)'. This should never happen."
+            )
+            throw Abort(.internalServerError)
+        }
+        try await authService.saveAuthCode(
+            code: sendLoginCodeResponse.authCode, userEmail: userEmail, userID: userID)
+
         return .ok
     }
 
