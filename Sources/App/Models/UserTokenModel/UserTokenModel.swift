@@ -38,6 +38,6 @@ final class UserTokenModel: Model, Content, @unchecked Sendable {
     }
 
     func isTokenValid() -> Bool {
-        return self.expiresAt > Date()
+        return self.expiresAt >= Date()
     }
 }

@@ -43,14 +43,11 @@ struct AuthenticationController: RouteCollection {
         let authService = AuthenticationService(db: req.db, client: req.client, logger: req.logger)
 
         let user = try req.auth.require(UserModel.self)
-        guard
-            let authCodeString = req.parameters.get("authCode"),
-            let authCode = Int(authCodeString)
-        else {
-            throw Abort(.custom(code: 400, reasonPhrase: "'authCode' Query Param Not Provided"))
-        }
 
-        return try await authService.login(user: user, authCode: authCode)
+        try LoginQuery.validate(query: req)
+        let query = try req.query.decode(LoginQuery.self)
+
+        return try await authService.login(user: user, authCode: query.authCode)
     }
 
     @Sendable

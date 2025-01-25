@@ -67,14 +67,44 @@ struct AuthenticationService {
         }
 
         let codeExpired = try await isAuthCodeExpired(authCode)
-        if codeExpired == true {
+        let newestCode = try await isAuthCodeTheNewest(authCode)
+
+        if codeExpired == true || newestCode == false {
             throw Abort(.custom(code: 401, reasonPhrase: "Auth Code Expired"))
         }
+
+        // Soft delete all auth codes so that it cannot be used again to login
+        guard
+            let userID = user.id
+        else {
+            logger.error(
+                "Could not find user ID for user with username '\(user.username)' after logging in user. This should never happen"
+            )
+            throw Abort(.internalServerError)
+        }
+        try await softDeleteAllAuthCodesForUser(for: userID)
 
         let token = try self.generateBearerToken(for: user)
         try await token.save(on: db)
 
         return token.value
+    }
+
+    private func isAuthCodeTheNewest(_ authCode: AuthenticationCodeModel) async throws -> Bool {
+        let newerCodes =
+            try await AuthenticationCodeModel
+            .query(on: db)
+            .filter(\.$expiresAt > authCode.expiresAt)
+            .all()
+
+        return newerCodes.count == 0
+    }
+
+    private func softDeleteAllAuthCodesForUser(for userID: UUID) async throws {
+        try await AuthenticationCodeModel
+            .query(on: db)
+            .filter(\.$user.$id == userID)
+            .delete()
     }
 
     private func getAuthCode(_ code: Int) async throws -> AuthenticationCodeModel? {
@@ -87,7 +117,7 @@ struct AuthenticationService {
     }
 
     private func isAuthCodeExpired(_ code: AuthenticationCodeModel) async throws -> Bool {
-        return code.expiresAt >= Date()
+        return code.expiresAt <= Date()
     }
 
     func logout(user userID: UUID, req: Request) async throws {

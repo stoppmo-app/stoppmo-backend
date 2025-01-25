@@ -1,5 +1,8 @@
 import Fluent
 
 struct AuthenticationCodeModelMigrations: MigrationsGroup {
-    var migrations: [any Migration] = [CreateAuthenticationCodeModel()]
+    var migrations: [any Migration] = [
+        CreateAuthenticationCodeModel(),
+        AuthenticationCodeModelTimestampZExpiresAt(),
+    ]
 }

@@ -33,3 +33,13 @@ struct SendAuthCodeResponse: Content {
     let authCode: Int
     let sentEmailZohoMailResponse: SendZohoMailEmailResponse
 }
+
+struct LoginQuery: Content, Validatable {
+    let authCode: Int
+
+    static func validations(_ validations: inout Validations) {
+        validations.add(
+            "authCode", as: Int.self, is: .valid, required: true,
+            customFailureDescription: "'authCode' query parameter not found.")
+    }
+}

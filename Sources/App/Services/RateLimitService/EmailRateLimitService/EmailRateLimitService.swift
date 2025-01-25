@@ -65,14 +65,14 @@ struct EmailRateLimitService {
                 try await EmailMessageModel
                 .query(on: db)
                 .filter(\.$sentToEmail == email)
-                .sort(\.$sentAt, .ascending)
+                .sort(\.$sentAt, .descending)
                 .first()
         else {
             // User sent no emails, meaning they aren't rate limited
             return .init(limitReached: false)
         }
 
-        let rateLimited = latestSentAt.sentAt < Date().addingTimeInterval(-limit)
+        let rateLimited = latestSentAt.sentAt.addingTimeInterval(limit) >= Date()
         if rateLimited == true {
             return .init(
                 limitReached: rateLimited,
