@@ -28,9 +28,12 @@ struct AuthenticationService {
             )
         }
         let emailService = EmailService(db: db, client: client, logger: logger)
+        let senderType: EmailSenderType = .authentication
         return try await emailService.sendEmail(
-            senderType: .authentication,
-            content: .fromTemplate(.authCode(code: Int.random(in: 0..<100000)), to: email))
+            senderType: senderType,
+            content: .fromTemplate(
+                .authCode(code: Int.random(in: 0..<100000)), from: senderType.getSenderEmail(),
+                to: email))
     }
 
     func login(user: UserModel) async throws -> String {
