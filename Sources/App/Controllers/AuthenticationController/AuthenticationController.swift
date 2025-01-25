@@ -20,9 +20,15 @@ struct AuthenticationController: RouteCollection {
     func sendLoginCode(req: Request) async throws -> HTTPStatus {
         let authService = AuthenticationService(db: req.db, client: req.client, logger: req.logger)
 
+        // 1. Send email
         let userEmail = try req.auth.require(UserModel.self).email
-        let response = try await authService.sendLoginCode(email: userEmail)
-        return .custom(code: UInt(response.status.code), reasonPhrase: response.status.description)
+        // let sendLoginCodeResponse = try await authService.sendLoginCode(email: userEmail)
+        let _ = try await authService.sendLoginCode(email: userEmail) // Remove this line
+
+        // 2. Save code
+        // TODO: create this method
+        // authService.saveLoginCode()
+        return .ok
     }
 
     @Sendable
