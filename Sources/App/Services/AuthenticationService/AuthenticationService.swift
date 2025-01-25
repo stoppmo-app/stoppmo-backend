@@ -6,16 +6,16 @@ struct AuthenticationService {
     let client: Client
     let logger: Logger
 
-    func sendLoginCode(email: String) async throws -> SendEmailResponse {
+    func sendLoginCode(email: String) async throws -> SendZohoMailEmailResponse {
         return try await sendAuthCode(email: email, messageType: .authLogin)
     }
 
-    func sendRegisterCode(email: String) async throws -> SendEmailResponse {
+    func sendRegisterCode(email: String) async throws -> SendZohoMailEmailResponse {
         return try await sendAuthCode(email: email, messageType: .authCreateAccount)
     }
 
     private func sendAuthCode(email: String, messageType: EmailMessageType) async throws
-        -> SendEmailResponse
+        -> SendZohoMailEmailResponse
     {
         let emailRateLimitService = RateLimitService.emails(.init(db: db))
         let rateLimitResponse = try await emailRateLimitService.authEmailsSent(
@@ -27,9 +27,9 @@ struct AuthenticationService {
                     reasonPhrase: rateLimitResponse.message ?? "Auth Emails Limit Reached")
             )
         }
-        let emailService = EmailService(db: db, client: client, logger: logger)
+        let messageService = MessageService(db: db, client: client, logger: logger)
         let senderType: EmailSenderType = .authentication
-        return try await emailService.sendEmail(
+        return try await messageService.sendEmail(
             senderType: senderType,
             content: .fromTemplate(
                 .authCode(code: Int.random(in: 0..<100000)), from: senderType.getSenderEmail(),
