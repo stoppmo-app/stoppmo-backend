@@ -6,18 +6,19 @@ struct AuthenticationService {
     let client: Client
     let logger: Logger
 
-    func sendLoginCode(email: String) async throws -> SendZohoMailEmailResponse {
+    func sendLoginCode(email: String) async throws -> SendAuthCodeResponse {
         return try await sendAuthCode(email: email, messageType: .authLogin)
     }
 
-    func sendRegisterCode(email: String) async throws -> SendZohoMailEmailResponse {
+    func sendRegisterCode(email: String) async throws -> SendAuthCodeResponse {
         return try await sendAuthCode(email: email, messageType: .authCreateAccount)
     }
 
-    private func sendAuthCode(email: String, messageType: EmailMessageType) async throws
-        -> SendZohoMailEmailResponse
+    private func sendAuthCode(email: String, messageType: EmailMessageType, code: Int? = nil)
+        async throws
+        -> SendAuthCodeResponse
     {
-        let emailRateLimitService = RateLimitService.emails(.init(db: db, logger: logger))
+        let emailRateLimitService = RateLimitService.emailsService(.init(db: db, logger: logger))
         let rateLimitResponse = try await emailRateLimitService.authEmailsSent(
             email: email, messageType: messageType)
 
@@ -28,13 +29,27 @@ struct AuthenticationService {
                     reasonPhrase: rateLimitResponse.message ?? "Auth Emails Limit Reached")
             )
         }
-        let messageService = MessageService(db: db, client: client, logger: logger)
+        let emailService = MessageService.getEmail(.init(db: db, client: client, logger: logger))
         let senderType: EmailSenderType = .authentication
-        return try await messageService.sendEmail(
+
+        // 1. Send email
+        let authCode = code ?? Int.random(in: 0..<100000)
+
+        let sendEmailResponse = try await emailService.sendEmail(
             senderType: senderType,
-            content: .fromTemplate(
-                .authCode(code: Int.random(in: 0..<100000)), from: senderType.getSenderEmail(),
-                to: email))
+            payload: .fromTemplate(
+                .authCode(code: authCode), from: senderType.getSenderEmail(),
+                to: email),
+            messageType: messageType
+        )
+
+        // 2. Save email
+        let savedEmail = try await emailService.saveEmail(sendEmailResponse.emailMessage)
+
+        // 3. Return saved email, code and response from sending email using Zoho Mail API
+        return .init(
+            savedEmail: savedEmail, authCode: authCode,
+            sentEmailZohoMailResponse: sendEmailResponse.sentEmailZohoMailResponse)
     }
 
     func login(user: UserModel) async throws -> String {

@@ -10,8 +10,11 @@ final class EmailMessageModel: Model, @unchecked Sendable {
     @Enum(key: "message_type")
     var messageType: EmailMessageType
 
-    @Field(key: "message")
-    var message: String
+    @Field(key: "subject")
+    var subject: String
+
+    @Field(key: "content")
+    var content: String
 
     @Field(key: "sent_at")
     var sentAt: Date
@@ -39,6 +42,8 @@ final class EmailMessageModel: Model, @unchecked Sendable {
     init(
         id: UUID? = nil,
         messageType: EmailMessageType,
+        subject: String,
+        content: String,
         sentAt: Date,
         sentTo: UUID,
         sentToEmail: String,
@@ -46,6 +51,8 @@ final class EmailMessageModel: Model, @unchecked Sendable {
     ) {
         self.id = id
         self.messageType = messageType
+        self.subject = subject
+        self.content = content
         self.sentAt = sentAt
         self.sentToEmail = sentToEmail
         self.sentFromEmail = sentFromEmail

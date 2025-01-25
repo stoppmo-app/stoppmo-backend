@@ -19,6 +19,11 @@ struct SendZohoMailEmailResponse: Content {
     let data: SendZohoMailEmailResponseData
 }
 
+struct EmailMessageModelWithSendZohoMailEmailResponse: Content {
+    let emailMessage: EmailMessageModel
+    let sentEmailZohoMailResponse: SendZohoMailEmailResponse
+}
+
 struct SendZohoMailEmailInvalidTokenResponse: Content {
     let status: ZohoMailResponseStatus
     let data: SendZohoMailEmailInvalidTokenResponseData

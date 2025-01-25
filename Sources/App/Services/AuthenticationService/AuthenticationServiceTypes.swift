@@ -27,3 +27,9 @@ struct UserBasicAuthenticator: AsyncBasicAuthenticator {
         request.auth.login(user)
     }
 }
+
+struct SendAuthCodeResponse: Content {
+    let savedEmail: EmailMessageModel
+    let authCode: Int
+    let sentEmailZohoMailResponse: SendZohoMailEmailResponse
+}

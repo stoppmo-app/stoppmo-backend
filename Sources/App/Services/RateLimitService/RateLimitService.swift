@@ -4,7 +4,7 @@ import Vapor
 // TODO: Write tests for all rate limit services code
 
 struct RateLimitService {
-    static func emails(_ service: EmailRateLimitService) -> EmailRateLimitService {
+    static func emailsService(_ service: EmailRateLimitService) -> EmailRateLimitService {
         return service
     }
 }
