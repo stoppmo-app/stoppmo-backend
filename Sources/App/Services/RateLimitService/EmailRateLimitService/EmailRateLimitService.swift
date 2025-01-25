@@ -3,6 +3,7 @@ import Vapor
 
 struct EmailRateLimitService {
     let db: Database
+    let logger: Logger
 
     func emailsSent(
         email: String,
@@ -25,6 +26,7 @@ struct EmailRateLimitService {
         if intervalRateLimitResponse.limitReached == true {
             return intervalRateLimitResponse
         }
+
         return .init(limitReached: false)
     }
 
@@ -85,6 +87,7 @@ struct EmailRateLimitService {
     {
         let intervalRateLimit = 100
         let dailyRateLimit = 20
+
         let rateLimitResponse = try await self.emailsSent(
             email: email,
             intervalRateLimit: TimeInterval(intervalRateLimit),
