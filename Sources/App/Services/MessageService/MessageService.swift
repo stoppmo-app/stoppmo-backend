@@ -7,8 +7,9 @@ struct MessageService {
     let logger: Logger
 
     func sendEmail(
-        senderType: EmailSenderType, content: SendEmailPayload
-    ) async throws -> SendEmailResponse {
+        senderType: EmailSenderType, content: SendZohoMailEmailPayload, maxRetries: Int = 5,
+        token zohoAccessToken: UUID? = nil
+    ) async throws -> SendZohoMailEmailResponse {
         let emailService = EmailService(db: db, client: client, logger: logger)
         return try await emailService.sendEmail(senderType: senderType, content: content)
     }
