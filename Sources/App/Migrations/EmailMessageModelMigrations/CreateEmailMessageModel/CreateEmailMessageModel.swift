@@ -6,7 +6,7 @@ struct CreateEmailMessageModel: AsyncMigration {
             .id()
             .field("message", .string, .required)
             .field("sent_at", .date, .required)
-            .field("sent_to", .uuid, .required, .references("users", "id"))
+            .field("sent_to", .uuid, .references("users", "id"))
             .field("created_at", .date, .required)
             .field("updated_at", .date)
             .field("deleted_at", .date)

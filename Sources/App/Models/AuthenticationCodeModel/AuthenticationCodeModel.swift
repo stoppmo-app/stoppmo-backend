@@ -15,6 +15,9 @@ final class AuthenticationCodeModel: Model, @unchecked Sendable {
 
     // TODO: add `email_message_id` parent field and create migration.
     // Update code to set this field when saving `AuthenticationCodeModel`
+
+    // TODO: Set `auth_code_type` to `email_message_type` enum
+    // (maybe rename the enum to something more generic and update `EmailMessageModel`) to use that instead
     @OptionalParent(key: "user_id")
     var user: UserModel?
 

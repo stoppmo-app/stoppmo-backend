@@ -19,8 +19,8 @@ final class EmailMessageModel: Model, @unchecked Sendable {
     @Field(key: "sent_at")
     var sentAt: Date
 
-    @Parent(key: "sent_to")
-    var user: UserModel
+    @OptionalParent(key: "sent_to")
+    var user: UserModel?
 
     @Field(key: "sent_to_email")
     var sentToEmail: String
@@ -45,7 +45,7 @@ final class EmailMessageModel: Model, @unchecked Sendable {
         subject: String,
         content: String,
         sentAt: Date,
-        sentTo: UUID,
+        sentTo: UUID?,
         sentToEmail: String,
         sentFromEmail: String
     ) {
@@ -56,6 +56,8 @@ final class EmailMessageModel: Model, @unchecked Sendable {
         self.sentAt = sentAt
         self.sentToEmail = sentToEmail
         self.sentFromEmail = sentFromEmail
-        self.$user.id = sentTo
+        if sentTo != nil {
+            self.$user.id = sentTo
+        }
     }
 }
