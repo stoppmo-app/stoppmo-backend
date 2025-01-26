@@ -26,7 +26,9 @@ struct EmailService {
         do {
             try await emailMessageModel.save(on: db)
         } catch {
-            logger.error("Failed to save `EmailMessageModel` to database - \(emailMessageModel)")
+            logger.error(
+                "Failed to save `EmailMessageModel` to database - \(emailMessageModel). Error: \(String(reflecting: error))"
+            )
             throw Abort(.internalServerError)
         }
         return emailMessageModel
@@ -44,24 +46,14 @@ struct EmailService {
             sentAt: Date(), sentTo: sentTo, sentToEmail: sentToEmail, sentFromEmail: sentFromEmail)
     }
 
-    private func getUserIDFromEmail(_ email: String) async throws -> UUID {
-        guard
-            let user =
-                try await UserModel
-                .query(on: db)
-                .filter(\.$email, .equal, email)
-                .field(\.$id)
-                .first()
-        else {
-            throw Abort(.notFound)
-        }
-        guard
-            let id = user.id
-        else {
-            logger.error(
-                "Could not find ID from user with email '\(email)'. This should never happen.")
-            throw Abort(.internalServerError)
-        }
+    private func getUserIDFromEmail(_ email: String) async throws -> UUID? {
+        let user =
+            try await UserModel
+            .query(on: db)
+            .filter(\.$email, .equal, email)
+            .field(\.$id)
+            .first()
+        let id = try? user?.requireID()
         return id
     }
 

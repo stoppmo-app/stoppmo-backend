@@ -6,7 +6,7 @@ struct CreateAuthenticationCodeModel: AsyncMigration {
             .id()
             .field("value", .int, .required)
             .field("email", .string, .required)
-            .field("user_id", .uuid, .required, .references("users", "id"))
+            .field("user_id", .uuid, .references("users", "id"))
             .field("expires_at", .date, .required)
             .field("created_at", .date, .required)
             .field("updated_at", .date)
