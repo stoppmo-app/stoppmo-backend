@@ -6,9 +6,9 @@ DerivedData/
 .DS_Store
 db.sqlite
 .swiftpm
-.env
-.env.*
-! .env.example
+.env.*           # Ignore all .env.* files (including production and others)
+!/.env.example   # Don't ignore .env.example at the root
+!infra/**/.env.*.example  # Don't ignore .env.*.example files under infra/
 
 # Xcode
 #

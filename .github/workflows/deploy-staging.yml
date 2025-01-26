@@ -3,13 +3,28 @@ on:
   push:
     branches:
       - release/staging
+
+env:
+  FLY_API_TOKEN: ${{ secrets.FLY_ORG_STOPPMO_API_TOKEN }}
+  FLY_REGION: bos
+  FLY_ORG: stoppmo-490
+  FLY_CONFIG_PATH: ./infra/staging/fly.staging.toml
+  FLY_APP_NAME: stoppmo-backend-staging
+  FLY_SECRETS_PATH: ./infra/staging/.env.staging
+
 jobs:
   deploy:
     name: Deploy app
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: superfly/flyctl-actions/setup-flyctl@master
-      - run: flyctl deploy --remote-only --config ./infra/fly.staging.toml
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_ORG_STOPPMO_API_TOKEN }}
+      - name: Set App Secrets
+        uses: superfly/flyctl-actions@1.5
+        with:
+          args: 'secrets import < ${{ env.FLY_SECRETS_PATH }} -a ${{ env.FLY_APP_NAME }}'
+
+      - name: Deploy App
+        uses: superfly/flyctl-actions@1.5
+        with:
+          args:
+            "deploy --app ${{ env.FLY_APP_NAME }} -c ${{ env.FLY_CONFIG_PATH }}"

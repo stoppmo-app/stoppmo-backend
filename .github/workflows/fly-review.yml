@@ -10,7 +10,8 @@ env:
   FLY_ORG: stoppmo-490
   FLY_PREVIEW_APP_NAME: stoppmo-backend-pr-${{ github.event.number }}
   FLY_PREVIEW_DATABASE_NAME: stoppmo-db-pr-${{ github.event.number }}
-  FLY_CONFIG_PATH: ./infra/fly.review.toml
+  FLY_CONFIG_PATH: ./infra/review/fly.review.toml
+  FLY_SECRETS_PATH: ./infra/review/.env.review
 
 jobs:
   create_apps:
@@ -33,15 +34,17 @@ jobs:
           args:
             'pg create --region ${{ env.FLY_REGION }} --vm-size shared-cpu-1x --name  ${{ env.FLY_PREVIEW_DATABASE_NAME }} --volume-size 5 --org ${{ env.FLY_ORG }} --initial-cluster-size 2'
       - name: Create Review App
-        uses: superfly/flyctl-actions@1.1
+        uses: superfly/flyctl-actions@1.5
         with:
           args: "apps create ${{ env.FLY_PREVIEW_APP_NAME }} --org ${{ env.FLY_ORG }}"
       - name: Connect Database to Preview App
         uses: superfly/flyctl-actions@1.5
-        env:
-          FLY_APP: ${{ env.FLY_PREVIEW_APP_NAME }}
         with:
           args: 'pg attach ${{ env.FLY_PREVIEW_DATABASE_NAME }} --app ${{ env.FLY_PREVIEW_APP_NAME }}'
+      - name: Set Preview App Secrets
+        uses: superfly/flyctl-actions@1.5
+        with:
+          args: 'secrets import < ${{ env.FLY_SECRETS_PATH }} --app ${{ env.FLY_PREVIEW_APP_NAME }}'
       - name: Deploy Preview App
         uses: superfly/flyctl-actions@1.5
         with:
