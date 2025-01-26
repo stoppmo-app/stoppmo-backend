@@ -34,13 +34,13 @@ struct AuthenticationService {
             throw Abort(
                 .custom(
                     code: 429,
-                    reasonPhrase: rateLimitResponse.message ?? "Auth Emails Limit Reached")
+                    reasonPhrase: rateLimitResponse.message ?? "Auth emails rate limit reached.")
             )
         }
 
         // Make sure account doesn't already exist
         if messageType == .authCreateAccount {
-            try await handleUserAccountAlreadyExistsWith(email: email)
+            try await handleUserExists(email: email)
         }
 
         let emailService = MessageService.getEmail(.init(db: db, client: client, logger: logger))
@@ -66,7 +66,7 @@ struct AuthenticationService {
             sentEmailZohoMailResponse: sendEmailResponse.sentEmailZohoMailResponse)
     }
 
-    private func handleUserAccountAlreadyExistsWith(email: String) async throws {
+    private func handleUserExists(email: String) async throws {
         let user =
             try await UserModel
             .query(on: db)
@@ -77,7 +77,7 @@ struct AuthenticationService {
         if user != nil {
             throw Abort(
                 .custom(
-                    code: 409, reasonPhrase: "User already exists with email '\(email)'"))
+                    code: 409, reasonPhrase: "User already exists with email '\(email)'."))
         }
     }
 
@@ -86,7 +86,7 @@ struct AuthenticationService {
         let newestCode = try await isAuthCodeTheNewest(authCode)
 
         if codeExpired == true || newestCode == false {
-            throw Abort(.custom(code: 401, reasonPhrase: "Auth Code Expired"))
+            throw Abort(.custom(code: 401, reasonPhrase: "Authentication code expired."))
         }
     }
 
@@ -94,7 +94,7 @@ struct AuthenticationService {
         guard
             let authCode = try await getAuthCode(code, email: user.email)
         else {
-            throw Abort(.custom(code: 401, reasonPhrase: "Auth Code Invalid"))
+            throw Abort(.custom(code: 401, reasonPhrase: "Authentication code invalid."))
         }
 
         try await handleAuthCodeExpired(authCode)
@@ -111,12 +111,12 @@ struct AuthenticationService {
 
     func register(user: UserModel, authCode code: Int) async throws -> BearerTokenWithUserDTO {
         let userEmail = user.email
-        try await handleUserAccountAlreadyExistsWith(email: userEmail)
+        try await handleUserExists(email: userEmail)
 
         guard
             let authCode = try await getAuthCode(code, email: userEmail)
         else {
-            throw Abort(.custom(code: 401, reasonPhrase: "Auth Code Invalid"))
+            throw Abort(.custom(code: 401, reasonPhrase: "Authentication code invalid."))
         }
 
         try await handleAuthCodeExpired(authCode)
@@ -187,7 +187,7 @@ struct AuthenticationService {
 
         // 2. Validate token
         if token.isTokenValid() == false {
-            throw Abort(.custom(code: 401, reasonPhrase: "Token Expired"))
+            throw Abort(.custom(code: 401, reasonPhrase: "Token expired."))
         }
 
         // 3. Return user
@@ -225,7 +225,7 @@ struct AuthenticationService {
                 .filter(\.$value, .equal, token)
                 .first()
         else {
-            throw Abort(.custom(code: 401, reasonPhrase: "Token Not Found"))
+            throw Abort(.custom(code: 401, reasonPhrase: "Token not found."))
         }
         return userToken
     }
