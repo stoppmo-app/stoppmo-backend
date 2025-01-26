@@ -9,8 +9,6 @@ env:
   FLY_REGION: bos
   FLY_ORG: stoppmo-490
   FLY_CONFIG_PATH: ./infra/staging/fly.staging.toml
-  FLY_APP_NAME: stoppmo-backend-staging
-  FLY_SECRETS_PATH: ./infra/staging/.env.staging
 
 jobs:
   deploy:
@@ -21,10 +19,10 @@ jobs:
       - name: Set App Secrets
         uses: superfly/flyctl-actions@1.5
         with:
-          args: 'secrets import < ${{ env.FLY_SECRETS_PATH }} -a ${{ env.FLY_APP_NAME }}'
+          args: 'fly secrets set ZOHO_CLIENT_ID=${{ secrets.ZOHO_CLIENT_ID }} ZOHO_CLIENT_SECRET=${{ secrets.ZOHO_CLIENT_SECRET }} ZOHO_REFRESH_TOKEN=${{ secrets.ZOHO_REFRESH_TOKEN}} ZOHO_MAIL_AUTH_SENDER_ID=${{ secrets.ZOHO_MAIL_AUTH_SENDER_ID}} --config ${{ env.FLY_CONFIG_PATH }}'
 
       - name: Deploy App
         uses: superfly/flyctl-actions@1.5
         with:
           args:
-            "deploy --app ${{ env.FLY_APP_NAME }} -c ${{ env.FLY_CONFIG_PATH }}"
+            "deploy --config ${{ env.FLY_CONFIG_PATH }}"

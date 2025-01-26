@@ -9,6 +9,8 @@
         "dev:docker:images:clean": "docker rmi -f $(docker images -aq)",
         "dev:docker:volumes:clean": "docker volume prune --all --force",
         "dev:shell": "docker compose exec -it app_dev sh",
+        "prod": "docker compose down app && docker compose up app --build -d && docker compose attach app",
+        "prod:shell": "docker compose exec -it app sh",
         "prepare": "npm run install:all",
         "prepare:action": "npm install",
         "generate": "",
