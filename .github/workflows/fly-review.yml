@@ -39,16 +39,16 @@ jobs:
       - name: Connect Database to Preview App
         uses: superfly/flyctl-actions@1.5
         with:
-          args: 'pg attach ${{ env.FLY_PREVIEW_DATABASE_NAME }} --config ${{ env.FLY_CONFIG_PATH }}'
+          args: 'pg attach ${{ env.FLY_PREVIEW_DATABASE_NAME }} --app ${{ env.FLY_PREVIEW_APP_NAME }}'
       - name: Set Preview App Secrets
         uses: superfly/flyctl-actions@1.5
         with:
-            args: 'fly secrets set ZOHO_CLIENT_ID=${{ secrets.ZOHO_CLIENT_ID }} ZOHO_CLIENT_SECRET=${{ secrets.ZOHO_CLIENT_SECRET }} ZOHO_REFRESH_TOKEN=${{ secrets.ZOHO_REFRESH_TOKEN}} ZOHO_MAIL_AUTH_SENDER_ID=${{ secrets.ZOHO_MAIL_AUTH_SENDER_ID}} --config ${{ env.FLY_CONFIG_PATH }}'
+            args: 'fly secrets set ZOHO_CLIENT_ID=${{ secrets.ZOHO_CLIENT_ID }} ZOHO_CLIENT_SECRET=${{ secrets.ZOHO_CLIENT_SECRET }} ZOHO_REFRESH_TOKEN=${{ secrets.ZOHO_REFRESH_TOKEN}} ZOHO_MAIL_AUTH_SENDER_ID=${{ secrets.ZOHO_MAIL_AUTH_SENDER_ID}} --app ${{ env.FLY_PREVIEW_APP_NAME }}'
       - name: Deploy Preview App
         uses: superfly/flyctl-actions@1.5
         with:
           args:
-            "deploy --config ${{ env.FLY_CONFIG_PATH }}"
+            "deploy --app ${{ env.FLY_PREVIEW_APP_NAME }} --config ${{ env.FLY_CONFIG_PATH }}"
   delete_apps:
     if: github.event.action == 'closed' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
@@ -83,4 +83,4 @@ jobs:
         uses: superfly/flyctl-actions@1.5
         with:
           args:
-            "deploy --config ${{ env.FLY_CONFIG_PATH }}"
+            "deploy --app ${{ env.FLY_PREVIEW_APP_NAME }} --config ${{ env.FLY_CONFIG_PATH }}"
