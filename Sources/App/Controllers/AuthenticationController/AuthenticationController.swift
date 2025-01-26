@@ -11,9 +11,25 @@ struct AuthenticationController: RouteCollection {
             basicProtected.post("login-code", use: self.sendLoginCode)
         }
 
+        auth.post("register-code", use: self.sendRegisterCode)
+        auth.post("register", use: self.register)
+
         auth.group(UserBearerAuthenticator(), UserModel.guardMiddleware()) { bearerProtected in
             bearerProtected.post("logout", use: self.logout)
         }
+    }
+
+    // TODO: Remove `createUser` route in `UserController`
+
+    @Sendable
+    func register(req: Request) async throws -> BearerTokenWithUserDTO {
+        let authService = AuthenticationService(db: req.db, client: req.client, logger: req.logger)
+        let user = try UserModel.fromDTO(req.content.decode(UserDTO.CreateUser.self))
+
+        try LoginAndRegisterQuery.validate(query: req)
+        let authCode = try req.query.decode(LoginAndRegisterQuery.self).authCode
+
+        return try await authService.register(user: user, authCode: authCode)
     }
 
     @Sendable
@@ -39,15 +55,28 @@ struct AuthenticationController: RouteCollection {
     }
 
     @Sendable
-    func login(req: Request) async throws -> String {
+    func sendRegisterCode(req: Request) async throws -> HTTPStatus {
+        let authService = AuthenticationService(db: req.db, client: req.client, logger: req.logger)
+
+        let userEmail = try req.content.decode(SendRegisterCodePayload.self).email
+        let sendLoginCodeResponse = try await authService.sendRegisterCode(email: userEmail)
+
+        try await authService.saveAuthCode(
+            code: sendLoginCodeResponse.authCode, userEmail: userEmail)
+
+        return .ok
+    }
+
+    @Sendable
+    func login(req: Request) async throws -> BearerTokenWithUserDTO {
         let authService = AuthenticationService(db: req.db, client: req.client, logger: req.logger)
 
         let user = try req.auth.require(UserModel.self)
 
-        try LoginQuery.validate(query: req)
-        let query = try req.query.decode(LoginQuery.self)
+        try LoginAndRegisterQuery.validate(query: req)
+        let authCode = try req.query.decode(LoginAndRegisterQuery.self).authCode
 
-        return try await authService.login(user: user, authCode: query.authCode)
+        return try await authService.login(user: user, authCode: authCode)
     }
 
     @Sendable

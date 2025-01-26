@@ -14,7 +14,7 @@ struct AuthenticationService {
         return try await sendAuthCode(email: email, messageType: .authCreateAccount)
     }
 
-    public func saveAuthCode(code: Int, userEmail: String, userID: UUID)
+    public func saveAuthCode(code: Int, userEmail: String, userID: UUID? = nil)
         async throws
     {
         let authCode = AuthenticationCodeModel(value: code, email: userEmail, userID: userID)
@@ -25,6 +25,7 @@ struct AuthenticationService {
         async throws
         -> SendAuthCodeResponse
     {
+        // Rate limit logic
         let emailRateLimitService = RateLimitService.emailsService(.init(db: db, logger: logger))
         let rateLimitResponse = try await emailRateLimitService.authEmailsSent(
             email: email, messageType: messageType)
@@ -36,6 +37,12 @@ struct AuthenticationService {
                     reasonPhrase: rateLimitResponse.message ?? "Auth Emails Limit Reached")
             )
         }
+
+        // Make sure account doesn't already exist
+        if messageType == .authCreateAccount {
+            try await handleUserAccountAlreadyExistsWith(email: email)
+        }
+
         let emailService = MessageService.getEmail(.init(db: db, client: client, logger: logger))
         let senderType: EmailSenderType = .authentication
 
@@ -59,35 +66,72 @@ struct AuthenticationService {
             sentEmailZohoMailResponse: sendEmailResponse.sentEmailZohoMailResponse)
     }
 
-    func login(user: UserModel, authCode code: Int) async throws -> String {
-        guard
-            let authCode = try await getAuthCode(code)
-        else {
-            throw Abort(.custom(code: 401, reasonPhrase: "Auth Code Invalid"))
-        }
+    private func handleUserAccountAlreadyExistsWith(email: String) async throws {
+        let user =
+            try await UserModel
+            .query(on: db)
+            .filter(\.$email == email)
+            .field(\.$id)
+            .first()
 
+        if user != nil {
+            throw Abort(
+                .custom(
+                    code: 409, reasonPhrase: "User already exists with email '\(email)'"))
+        }
+    }
+
+    private func handleAuthCodeExpired(_ authCode: AuthenticationCodeModel) async throws {
         let codeExpired = try await isAuthCodeExpired(authCode)
         let newestCode = try await isAuthCodeTheNewest(authCode)
 
         if codeExpired == true || newestCode == false {
             throw Abort(.custom(code: 401, reasonPhrase: "Auth Code Expired"))
         }
+    }
+
+    func login(user: UserModel, authCode code: Int) async throws -> BearerTokenWithUserDTO {
+        guard
+            let authCode = try await getAuthCode(code, email: user.email)
+        else {
+            throw Abort(.custom(code: 401, reasonPhrase: "Auth Code Invalid"))
+        }
+
+        try await handleAuthCodeExpired(authCode)
 
         // Soft delete all auth codes so that it cannot be used again to login
-        guard
-            let userID = user.id
-        else {
-            logger.error(
-                "Could not find user ID for user with username '\(user.username)' after logging in user. This should never happen"
-            )
-            throw Abort(.internalServerError)
-        }
-        try await softDeleteAllAuthCodesForUser(for: userID)
+        let userID = try user.requireID()
+        try await softDeleteAllAuthCodesForUser(id: userID)
 
-        let token = try self.generateBearerToken(for: user)
+        let token = self.generateBearerToken(id: userID)
         try await token.save(on: db)
 
-        return token.value
+        return .init(token: token.value, user: user.toDTO())
+    }
+
+    func register(user: UserModel, authCode code: Int) async throws -> BearerTokenWithUserDTO {
+        let userEmail = user.email
+        try await handleUserAccountAlreadyExistsWith(email: userEmail)
+
+        guard
+            let authCode = try await getAuthCode(code, email: userEmail)
+        else {
+            throw Abort(.custom(code: 401, reasonPhrase: "Auth Code Invalid"))
+        }
+
+        try await handleAuthCodeExpired(authCode)
+
+        // Save user to generate `id`
+        try await user.save(on: db)
+
+        // Soft delete all auth codes to avoid register attempts with old auth codes
+        let userID = try user.requireID()
+        try await softDeleteAllAuthCodesForUser(id: userID)
+
+        let token = self.generateBearerToken(id: userID)
+        try await token.save(on: db)
+
+        return .init(token: token.value, user: user.toDTO())
     }
 
     private func isAuthCodeTheNewest(_ authCode: AuthenticationCodeModel) async throws -> Bool {
@@ -100,18 +144,21 @@ struct AuthenticationService {
         return newerCodes.count == 0
     }
 
-    private func softDeleteAllAuthCodesForUser(for userID: UUID) async throws {
+    private func softDeleteAllAuthCodesForUser(id userID: UUID)
+        async throws
+    {
         try await AuthenticationCodeModel
             .query(on: db)
             .filter(\.$user.$id == userID)
             .delete()
     }
 
-    private func getAuthCode(_ code: Int) async throws -> AuthenticationCodeModel? {
+    private func getAuthCode(_ code: Int, email: String) async throws -> AuthenticationCodeModel? {
         let code =
             try await AuthenticationCodeModel
             .query(on: db)
             .filter(\.$value == code)
+            .filter(\.$email == email)
             .first()
         return code
     }
@@ -127,10 +174,10 @@ struct AuthenticationService {
 
     }
 
-    func generateBearerToken(for user: UserModel) throws -> UserTokenModel {
-        try .init(
+    func generateBearerToken(id userID: UUID) -> UserTokenModel {
+        .init(
             value: [UInt8].random(count: 16).base64,
-            userID: user.requireID()
+            userID: userID
         )
     }
 
