@@ -7,17 +7,25 @@ import Fluent
 import Vapor
 
 struct EmailRateLimitService {
-    let db: Database
+    let database: Database
     let logger: Logger
+
+    struct IntervalAndDailyRateLimit: Content {
+        let intervalRateLimit: TimeInterval
+        let dailyRateLimit: Int
+    }
 
     func emailsSent(
         email: String,
-        intervalRateLimit: TimeInterval,
-        dailyRateLimit: Int,
+        rateLimit: IntervalAndDailyRateLimit,
         messageTypes: [EmailMessageType],
         intervalRateLimitReachedMessage: EmailIntervalRateLimitMessage,
         dailyRateLimitReachedMessage _: EmailDailyRateLimitMessage
     ) async throws -> GenericRateLimitResponse {
+
+        let intervalRateLimit = rateLimit.intervalRateLimit
+        let dailyRateLimit: Int = rateLimit.dailyRateLimit
+
         let dailyRateLimitResponse = try await emailsSentDailyRateLimit(
             email: email, messageTypes: messageTypes, limit: dailyRateLimit,
             message: intervalRateLimitReachedMessage.getMessage()
@@ -44,7 +52,7 @@ struct EmailRateLimitService {
         message: String
     ) async throws -> GenericRateLimitResponse {
         if try await EmailMessageModel
-            .query(on: db)
+            .query(on: database)
             .filter(\.$sentToEmail == email)
             .filter(\.$messageType ~~ messageTypes)
             .filter(\.$sentAt >= Date().addingTimeInterval(-86400))
@@ -68,8 +76,8 @@ struct EmailRateLimitService {
     ) async throws -> GenericRateLimitResponse {
         guard
             let latestSentAt =
-            try await EmailMessageModel
-                .query(on: db)
+                try await EmailMessageModel
+                .query(on: database)
                 .filter(\.$sentToEmail == email)
                 .sort(\.$sentAt, .descending)
                 .first()
@@ -96,8 +104,8 @@ struct EmailRateLimitService {
 
         let rateLimitResponse = try await emailsSent(
             email: email,
-            intervalRateLimit: TimeInterval(intervalRateLimit),
-            dailyRateLimit: dailyRateLimit,
+            rateLimit: .init(
+                intervalRateLimit: TimeInterval(intervalRateLimit), dailyRateLimit: dailyRateLimit),
             messageTypes: [messageType],
             intervalRateLimitReachedMessage: .fromEmailMessageType(
                 messageType: messageType,

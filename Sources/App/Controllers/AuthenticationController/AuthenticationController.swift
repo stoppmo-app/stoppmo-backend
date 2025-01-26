@@ -28,7 +28,9 @@ struct AuthenticationController: RouteCollection {
 
     @Sendable
     func register(req: Request) async throws -> BearerTokenWithUserDTO {
-        let authService = AuthenticationService(db: req.db, client: req.client, logger: req.logger)
+        let authService = AuthenticationService(
+            database: req.db, client: req.client, logger: req.logger
+        )
         let user = try UserModel.fromDTO(req.content.decode(UserDTO.CreateUser.self))
 
         try LoginAndRegisterQuery.validate(query: req)
@@ -39,7 +41,9 @@ struct AuthenticationController: RouteCollection {
 
     @Sendable
     func sendLoginCode(req: Request) async throws -> HTTPStatus {
-        let authService = AuthenticationService(db: req.db, client: req.client, logger: req.logger)
+        let authService = AuthenticationService(
+            database: req.db, client: req.client, logger: req.logger
+        )
 
         let user = try req.auth.require(UserModel.self)
         let userEmail = user.email
@@ -62,7 +66,9 @@ struct AuthenticationController: RouteCollection {
 
     @Sendable
     func sendRegisterCode(req: Request) async throws -> HTTPStatus {
-        let authService = AuthenticationService(db: req.db, client: req.client, logger: req.logger)
+        let authService = AuthenticationService(
+            database: req.db, client: req.client, logger: req.logger
+        )
 
         let userEmail = try req.content.decode(SendRegisterCodePayload.self).email
         let sendLoginCodeResponse = try await authService.sendRegisterCode(email: userEmail)
@@ -76,7 +82,9 @@ struct AuthenticationController: RouteCollection {
 
     @Sendable
     func login(req: Request) async throws -> BearerTokenWithUserDTO {
-        let authService = AuthenticationService(db: req.db, client: req.client, logger: req.logger)
+        let authService = AuthenticationService(
+            database: req.db, client: req.client, logger: req.logger
+        )
 
         let user = try req.auth.require(UserModel.self)
 
@@ -88,7 +96,9 @@ struct AuthenticationController: RouteCollection {
 
     @Sendable
     func logout(req: Request) async throws -> HTTPStatus {
-        let authService = AuthenticationService(db: req.db, client: req.client, logger: req.logger)
+        let authService = AuthenticationService(
+            database: req.db, client: req.client, logger: req.logger
+        )
 
         guard
             let userID = try req.auth.require(UserModel.self).id

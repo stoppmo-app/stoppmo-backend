@@ -7,7 +7,7 @@ import Fluent
 import Vapor
 
 struct AuthenticationService {
-    let db: Database
+    let database: Database
     let client: Client
     let logger: Logger
 
@@ -23,7 +23,7 @@ struct AuthenticationService {
         async throws
     {
         let authCode = AuthenticationCodeModel(value: code, email: userEmail, userID: userID)
-        try await authCode.save(on: db)
+        try await authCode.save(on: database)
     }
 
     private func sendAuthCode(email: String, messageType: EmailMessageType, code: Int? = nil)
@@ -31,7 +31,7 @@ struct AuthenticationService {
         -> SendAuthCodeResponse
     {
         // Rate limit logic
-        let emailRateLimitService = RateLimitService.emailsService(.init(db: db, logger: logger))
+        let emailRateLimitService = RateLimitService.emailsService(.init(database: database, logger: logger))
         let rateLimitResponse = try await emailRateLimitService.authEmailsSent(
             email: email, messageType: messageType
         )
@@ -50,7 +50,7 @@ struct AuthenticationService {
             try await handleUserAccountAlreadyExistsWith(email: email)
         }
 
-        let emailService = MessageService.getEmail(.init(db: db, client: client, logger: logger))
+        let emailService = MessageService.getEmail(.init(database: database, client: client, logger: logger))
         let senderType: EmailSenderType = .authentication
 
         // 1. Send email
@@ -78,7 +78,7 @@ struct AuthenticationService {
     private func handleUserAccountAlreadyExistsWith(email: String) async throws {
         let user =
             try await UserModel
-                .query(on: db)
+                .query(on: database)
                 .filter(\.$email == email)
                 .field(\.$id)
                 .first()
@@ -115,7 +115,7 @@ struct AuthenticationService {
         try await softDeleteAllAuthCodesForUser(id: userID)
 
         let token = generateBearerToken(id: userID)
-        try await token.save(on: db)
+        try await token.save(on: database)
 
         return .init(token: token.value, user: user.toDTO())
     }
@@ -133,14 +133,14 @@ struct AuthenticationService {
         try await handleAuthCodeExpired(authCode)
 
         // Save user to generate `id`
-        try await user.save(on: db)
+        try await user.save(on: database)
 
         // Soft delete all auth codes to avoid register attempts with old auth codes
         let userID = try user.requireID()
         try await softDeleteAllAuthCodesForUser(id: userID)
 
         let token = generateBearerToken(id: userID)
-        try await token.save(on: db)
+        try await token.save(on: database)
 
         return .init(token: token.value, user: user.toDTO())
     }
@@ -148,7 +148,7 @@ struct AuthenticationService {
     private func isAuthCodeTheNewest(_ authCode: AuthenticationCodeModel) async throws -> Bool {
         let newerCodes =
             try await AuthenticationCodeModel
-                .query(on: db)
+                .query(on: database)
                 .filter(\.$expiresAt > authCode.expiresAt)
                 .all()
 
@@ -159,7 +159,7 @@ struct AuthenticationService {
         async throws
     {
         try await AuthenticationCodeModel
-            .query(on: db)
+            .query(on: database)
             .filter(\.$user.$id == userID)
             .delete()
     }
@@ -167,7 +167,7 @@ struct AuthenticationService {
     private func getAuthCode(_ code: Int, email: String) async throws -> AuthenticationCodeModel? {
         let code =
             try await AuthenticationCodeModel
-                .query(on: db)
+                .query(on: database)
                 .filter(\.$value == code)
                 .filter(\.$email == email)
                 .first()
@@ -201,7 +201,7 @@ struct AuthenticationService {
         }
 
         // 3. Return user
-        return try await token.$user.get(on: db)
+        return try await token.$user.get(on: database)
     }
 
     func getUserFromBasicAuthorization(_ basic: BasicAuthorization) async throws -> UserModel {
@@ -209,7 +209,7 @@ struct AuthenticationService {
         guard
             let user =
             try await UserModel
-                .query(on: db)
+                .query(on: database)
                 .filter(\.$username, .equal, basic.username)
                 .first()
         else {
@@ -231,7 +231,7 @@ struct AuthenticationService {
         guard
             let userToken =
             try await UserTokenModel
-                .query(on: db)
+                .query(on: database)
                 .filter(\.$value, .equal, token)
                 .first()
         else {
@@ -243,12 +243,12 @@ struct AuthenticationService {
     func removeOldBearerTokens(for userID: UUID) async throws {
         let tokens =
             try await UserTokenModel
-                .query(on: db)
+                .query(on: database)
                 .filter(\.$user.$id, .equal, userID)
                 .all()
 
         for token in tokens {
-            try await token.delete(on: db)
+            try await token.delete(on: database)
         }
     }
 }

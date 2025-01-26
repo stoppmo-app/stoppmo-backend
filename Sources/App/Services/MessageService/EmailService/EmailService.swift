@@ -7,7 +7,7 @@ import Fluent
 import Vapor
 
 struct EmailService {
-    let db: Database
+    let database: Database
     let client: Client
     let logger: Logger
     private let zohoMailAPIBaseUrl = "https://mail.zoho.com/api"
@@ -27,9 +27,10 @@ struct EmailService {
         return .init(emailMessage: emailMessageModel, sentEmailZohoMailResponse: zohoResponse)
     }
 
-    public func saveEmail(_ emailMessageModel: EmailMessageModel) async throws -> EmailMessageModel {
+    public func saveEmail(_ emailMessageModel: EmailMessageModel) async throws -> EmailMessageModel
+    {
         do {
-            try await emailMessageModel.save(on: db)
+            try await emailMessageModel.save(on: database)
         } catch {
             logger.error(
                 "Failed to save `EmailMessageModel` to database - \(emailMessageModel). Error: \(String(reflecting: error))"
@@ -55,10 +56,10 @@ struct EmailService {
     private func getUserIDFromEmail(_ email: String) async throws -> UUID? {
         let user =
             try await UserModel
-                .query(on: db)
-                .filter(\.$email, .equal, email)
-                .field(\.$id)
-                .first()
+            .query(on: database)
+            .filter(\.$email, .equal, email)
+            .field(\.$id)
+            .first()
         let id = try? user?.requireID()
         return id
     }
@@ -74,11 +75,12 @@ struct EmailService {
         // the ability to generate a new access token.
         // Get that token. If it does not work, generate a new token and delete the previous ones
 
-        var token: String = if let zohoAccessToken {
-            zohoAccessToken
-        } else {
-            try await refreshAndGetNewZohoAccessToken()
-        }
+        let token: String =
+            if let zohoAccessToken {
+                zohoAccessToken
+            } else {
+                try await refreshAndGetNewZohoAccessToken()
+            }
 
         guard
             let senderEmailID = Environment.get("ZOHO_MAIL_AUTH_SENDER_ID")
@@ -119,7 +121,7 @@ struct EmailService {
         response: ClientResponse, senderType: EmailSenderType, payload: SendZohoMailEmailPayload,
         maxRetries: Int
     ) async throws -> SendZohoMailEmailResponse {
-        let _ = try response.content.decode(
+        _ = try response.content.decode(
             SendZohoMailEmailInvalidTokenResponse.self
         )
         if maxRetries == 0 {

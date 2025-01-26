@@ -57,7 +57,6 @@ struct RefreshZohoMailAccessTokenPayload: Content {
     let client_id: String
     let client_secret: String
     let refresh_token: String
-    // let grant_type: RefreshZohoMailAccessTokenGrantType
     let grant_type: String
 }
 
