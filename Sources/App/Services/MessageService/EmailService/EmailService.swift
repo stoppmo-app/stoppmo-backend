@@ -171,9 +171,8 @@ struct EmailService {
             throw Abort(.internalServerError)
         }
         let content = RefreshZohoMailAccessTokenPayload(
-            client_id: clientID, client_secret: clientSecret, refresh_token: refreshToken,
-            // grant_type: .refreshToken)
-            grant_type: "refresh_token"
+            clientID: clientID, clientSecret: clientSecret, refreshToken: refreshToken,
+            grantType: "refresh_token"
         )
 
         let response = try await client.post(url) { req in

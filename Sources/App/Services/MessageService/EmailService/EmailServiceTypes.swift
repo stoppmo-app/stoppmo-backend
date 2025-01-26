@@ -54,10 +54,17 @@ struct SendZohoMailEmailInvalidTokenResponseData: Content {
 }
 
 struct RefreshZohoMailAccessTokenPayload: Content {
-    let client_id: String
-    let client_secret: String
-    let refresh_token: String
-    let grant_type: String
+    enum CodingKeys: String, CodingKey {
+        case clientID = "client_id"
+        case clientSecret = "client_secret"
+        case refreshToken = "refresh_token"
+        case grantType = "grant_type"
+    }
+
+    let clientID: String
+    let clientSecret: String
+    let refreshToken: String
+    let grantType: String
 }
 
 enum RefreshZohoMailAccessTokenGrantType: String, Codable {
