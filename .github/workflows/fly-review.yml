@@ -43,7 +43,7 @@ jobs:
       - name: Set Preview App Secrets
         uses: superfly/flyctl-actions@1.5
         with:
-            args: 'fly secrets set ZOHO_CLIENT_ID=${{ secrets.ZOHO_CLIENT_ID }} ZOHO_CLIENT_SECRET=${{ secrets.ZOHO_CLIENT_SECRET }} ZOHO_REFRESH_TOKEN=${{ secrets.ZOHO_REFRESH_TOKEN}} ZOHO_MAIL_AUTH_SENDER_ID=${{ secrets.ZOHO_MAIL_AUTH_SENDER_ID}} --app ${{ env.FLY_PREVIEW_APP_NAME }}'
+            args: 'secrets set ZOHO_CLIENT_ID=${{ secrets.ZOHO_CLIENT_ID }} ZOHO_CLIENT_SECRET=${{ secrets.ZOHO_CLIENT_SECRET }} ZOHO_REFRESH_TOKEN=${{ secrets.ZOHO_REFRESH_TOKEN}} ZOHO_MAIL_AUTH_SENDER_ID=${{ secrets.ZOHO_MAIL_AUTH_SENDER_ID}} --app ${{ env.FLY_PREVIEW_APP_NAME }}'
       - name: Deploy Preview App
         uses: superfly/flyctl-actions@1.5
         with:
