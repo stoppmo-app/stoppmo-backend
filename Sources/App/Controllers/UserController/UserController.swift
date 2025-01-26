@@ -39,7 +39,8 @@ struct UserController: RouteCollection {
     func getUserInfo(req: Request) async throws -> UserDTO.GetUser {
         guard
             let user = try await UserModel.find(
-                req.parameters.get("userID", as: UUID.self), on: req.db)
+                req.parameters.get("userID", as: UUID.self), on: req.db
+            )
         else {
             throw Abort(.notFound)
         }
@@ -50,7 +51,8 @@ struct UserController: RouteCollection {
     func deleteUser(req: Request) async throws -> HTTPStatus {
         guard
             let user = try await UserModel.find(
-                req.parameters.get("userID", as: UUID.self), on: req.db)
+                req.parameters.get("userID", as: UUID.self), on: req.db
+            )
         else {
             throw Abort(.notFound)
         }
@@ -65,7 +67,8 @@ struct UserController: RouteCollection {
         let updatedUser = try req.content.decode(UserDTO.UpdateUser.self)
         guard
             let user = try await UserModel.find(
-                req.parameters.get("userID", as: UUID.self), on: req.db)
+                req.parameters.get("userID", as: UUID.self), on: req.db
+            )
         else {
             throw Abort(.notFound)
         }

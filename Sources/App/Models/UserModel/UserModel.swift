@@ -1,3 +1,8 @@
+// UserModel.swift
+// Copyright (c) 2025 StopPMO
+// All source code and related assets are the property of StopPMO.
+// All rights reserved.
+
 import Fluent
 import Foundation
 import Vapor
@@ -95,12 +100,12 @@ final class UserModel: Model, Authenticatable, @unchecked Sendable {
     }
 
     static func fromDTO(_ dto: UserDTO.CreateUser) throws -> UserModel {
-        .init(
+        try .init(
             firstName: dto.firstName,
             lastName: dto.lastName,
             username: dto.username,
             email: dto.email,
-            passwordHash: try Bcrypt.hash(dto.password),
+            passwordHash: Bcrypt.hash(dto.password),
             role: .member,
             profilePictureURL: dto.profilePictureURL,
             bio: dto.bio,
@@ -110,7 +115,7 @@ final class UserModel: Model, Authenticatable, @unchecked Sendable {
     }
 
     func deleteDependents(db: Database, logger: Logger) async throws {
-        let id = try self.requireID()
+        let id = try requireID()
         logger.info("Deleting all auth codes for user with ID '\(id)'.")
         try await AuthenticationCodeModel
             .query(on: db)
@@ -131,7 +136,7 @@ final class UserModel: Model, Authenticatable, @unchecked Sendable {
 
         try await EmailMessageModel
             .query(on: db)
-            .filter(\.$sentToEmail == self.email)
+            .filter(\.$sentToEmail == email)
             .delete()
 
         logger.info("Deleting all tokens for user with ID '\(id)'.")

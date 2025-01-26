@@ -1,3 +1,8 @@
+// EmailMessageModel.swift
+// Copyright (c) 2025 StopPMO
+// All source code and related assets are the property of StopPMO.
+// All rights reserved.
+
 import Fluent
 import Foundation
 
@@ -57,7 +62,7 @@ final class EmailMessageModel: Model, @unchecked Sendable {
         self.sentToEmail = sentToEmail
         self.sentFromEmail = sentFromEmail
         if sentTo != nil {
-            self.$user.id = sentTo
+            $user.id = sentTo
         }
     }
 }

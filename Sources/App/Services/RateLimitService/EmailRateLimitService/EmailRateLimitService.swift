@@ -1,3 +1,8 @@
+// EmailRateLimitService.swift
+// Copyright (c) 2025 StopPMO
+// All source code and related assets are the property of StopPMO.
+// All rights reserved.
+
 import Fluent
 import Vapor
 
@@ -11,18 +16,20 @@ struct EmailRateLimitService {
         dailyRateLimit: Int,
         messageTypes: [EmailMessageType],
         intervalRateLimitReachedMessage: EmailIntervalRateLimitMessage,
-        dailyRateLimitReachedMessage: EmailDailyRateLimitMessage
+        dailyRateLimitReachedMessage _: EmailDailyRateLimitMessage
     ) async throws -> GenericRateLimitResponse {
-        let dailyRateLimitResponse = try await self.emailsSentDailyRateLimit(
+        let dailyRateLimitResponse = try await emailsSentDailyRateLimit(
             email: email, messageTypes: messageTypes, limit: dailyRateLimit,
-            message: intervalRateLimitReachedMessage.getMessage())
+            message: intervalRateLimitReachedMessage.getMessage()
+        )
         if dailyRateLimitResponse.limitReached == true {
             return dailyRateLimitResponse
         }
 
-        let intervalRateLimitResponse = try await self.emailsSentIntervalLimit(
+        let intervalRateLimitResponse = try await emailsSentIntervalLimit(
             email: email, limit: intervalRateLimit,
-            message: intervalRateLimitReachedMessage.getMessage())
+            message: intervalRateLimitReachedMessage.getMessage()
+        )
         if intervalRateLimitResponse.limitReached == true {
             return intervalRateLimitResponse
         }
@@ -36,7 +43,6 @@ struct EmailRateLimitService {
         limit: Int,
         message: String
     ) async throws -> GenericRateLimitResponse {
-
         if try await EmailMessageModel
             .query(on: db)
             .filter(\.$sentToEmail == email)
@@ -62,7 +68,7 @@ struct EmailRateLimitService {
     ) async throws -> GenericRateLimitResponse {
         guard
             let latestSentAt =
-                try await EmailMessageModel
+            try await EmailMessageModel
                 .query(on: db)
                 .filter(\.$sentToEmail == email)
                 .sort(\.$sentAt, .descending)
@@ -88,7 +94,7 @@ struct EmailRateLimitService {
         let intervalRateLimit = 100
         let dailyRateLimit = 20
 
-        let rateLimitResponse = try await self.emailsSent(
+        let rateLimitResponse = try await emailsSent(
             email: email,
             intervalRateLimit: TimeInterval(intervalRateLimit),
             dailyRateLimit: dailyRateLimit,
@@ -100,7 +106,8 @@ struct EmailRateLimitService {
             dailyRateLimitReachedMessage: .fromEmailMessageType(
                 messageType: messageType,
                 limit: dailyRateLimit
-            ))
+            )
+        )
         return rateLimitResponse
     }
 }

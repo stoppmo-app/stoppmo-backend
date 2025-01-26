@@ -1,3 +1,8 @@
+// UserBadgeModel.swift
+// Copyright (c) 2025 StopPMO
+// All source code and related assets are the property of StopPMO.
+// All rights reserved.
+
 import Fluent
 import Foundation
 
@@ -27,7 +32,7 @@ final class UserBadgeModel: Model, @unchecked Sendable {
     var updatedAt: Date?
 
     @Timestamp(key: "deleted_at", on: .delete)
-   var deletedAt: Date?
+    var deletedAt: Date?
 
     init() {}
 
@@ -59,6 +64,7 @@ final class UserBadgeModel: Model, @unchecked Sendable {
     static func fromDTO(_ dto: UserBadgeDTO.CreateUserBadge) -> UserBadgeModel {
         .init(
             startedAt: dto.startedAt, claimedAt: dto.claimedAt, badgeID: dto.badgeID,
-            userID: dto.userID)
+            userID: dto.userID
+        )
     }
 }

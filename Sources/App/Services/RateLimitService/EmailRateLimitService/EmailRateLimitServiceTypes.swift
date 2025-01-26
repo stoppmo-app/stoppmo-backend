@@ -1,3 +1,8 @@
+// EmailRateLimitServiceTypes.swift
+// Copyright (c) 2025 StopPMO
+// All source code and related assets are the property of StopPMO.
+// All rights reserved.
+
 import Foundation
 
 protocol EmailRateLimitMessage: Codable {
@@ -11,21 +16,20 @@ enum EmailDailyRateLimitMessage: EmailRateLimitMessage {
     mutating func getMessage() -> String {
         switch self {
         case let .authCreateAccount(limit):
-            return
-                "Reached limit of \(limit) account creation attempts for today. Try again in 24 hours."
+            "Reached limit of \(limit) account creation attempts for today. Try again in 24 hours."
         case let .authLogin(limit):
-            return
-                "Reached limit of \(limit) account login attempts for today. Try again in 24 hours."
+            "Reached limit of \(limit) account login attempts for today. Try again in 24 hours."
         }
     }
+
     static func fromEmailMessageType(messageType: EmailMessageType, limit: Int)
         -> EmailDailyRateLimitMessage
     {
         switch messageType {
         case .authCreateAccount:
-            return .authCreateAccount(limit: limit)
+            .authCreateAccount(limit: limit)
         case .authLogin:
-            return .authLogin(limit: limit)
+            .authLogin(limit: limit)
         }
     }
 }
@@ -37,9 +41,9 @@ enum EmailIntervalRateLimitMessage: EmailRateLimitMessage {
     func getMessage() -> String {
         switch self {
         case let .authCreateAccount(seconds):
-            return "Too many account creation attempts. Try again in \(seconds) seconds."
+            "Too many account creation attempts. Try again in \(seconds) seconds."
         case let .authLogin(seconds):
-            return "Too many login attempts. Try again in \(seconds) seconds."
+            "Too many login attempts. Try again in \(seconds) seconds."
         }
     }
 
@@ -48,9 +52,9 @@ enum EmailIntervalRateLimitMessage: EmailRateLimitMessage {
     {
         switch messageType {
         case .authCreateAccount:
-            return .authCreateAccount(seconds: limit)
+            .authCreateAccount(seconds: limit)
         case .authLogin:
-            return .authLogin(seconds: limit)
+            .authLogin(seconds: limit)
         }
     }
 }

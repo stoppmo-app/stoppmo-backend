@@ -60,7 +60,8 @@ struct UserBadgeController: RouteCollection {
     @Sendable
     func createUserBadge(req: Request) async throws -> UserBadgeDTO.GetUserBadge {
         let userBadge = try UserBadgeModel.fromDTO(
-            req.content.decode(UserBadgeDTO.CreateUserBadge.self))
+            req.content.decode(UserBadgeDTO.CreateUserBadge.self)
+        )
         try await userBadge.save(on: req.db)
         return userBadge.toDTO()
     }

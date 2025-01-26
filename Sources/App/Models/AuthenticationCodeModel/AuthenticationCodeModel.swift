@@ -1,3 +1,8 @@
+// AuthenticationCodeModel.swift
+// Copyright (c) 2025 StopPMO
+// All source code and related assets are the property of StopPMO.
+// All rights reserved.
+
 import Fluent
 import Foundation
 
@@ -45,7 +50,7 @@ final class AuthenticationCodeModel: Model, @unchecked Sendable {
         self.id = id
         self.value = value
         self.email = email
-        self.expiresAt = Date().addingTimeInterval(expiresIn)
-        self.$user.id = userID
+        expiresAt = Date().addingTimeInterval(expiresIn)
+        $user.id = userID
     }
 }

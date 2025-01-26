@@ -32,7 +32,7 @@ public func configure(_ app: Application) async throws {
             ), as: .psql
         )
     }
-    
+
     // use leaf templates for views
     app.views.use(.leaf)
 

@@ -1,3 +1,8 @@
+// UserTokenModel.swift
+// Copyright (c) 2025 StopPMO
+// All source code and related assets are the property of StopPMO.
+// All rights reserved.
+
 import Fluent
 import Vapor
 
@@ -29,15 +34,15 @@ final class UserTokenModel: Model, Content, @unchecked Sendable {
 
     // expiresIn default value == 10 days (in seconds)
     init(
-        id: UUID? = nil, value: String, userID: UUID, expiresIn: TimeInterval = 864000
+        id: UUID? = nil, value: String, userID: UUID, expiresIn: TimeInterval = 864_000
     ) {
         self.id = id
         self.value = value
-        self.expiresAt = Date().addingTimeInterval(expiresIn)
-        self.$user.id = userID
+        expiresAt = Date().addingTimeInterval(expiresIn)
+        $user.id = userID
     }
 
     func isTokenValid() -> Bool {
-        return self.expiresAt >= Date()
+        expiresAt >= Date()
     }
 }

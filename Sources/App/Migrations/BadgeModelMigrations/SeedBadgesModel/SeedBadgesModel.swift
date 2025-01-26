@@ -1,3 +1,8 @@
+// SeedBadgesModel.swift
+// Copyright (c) 2025 StopPMO
+// All source code and related assets are the property of StopPMO.
+// All rights reserved.
+
 import Fluent
 
 struct SeedBadgesModel: AsyncMigration {
@@ -14,19 +19,24 @@ struct SeedBadgesModel: AsyncMigration {
         [
             BadgeModel(
                 name: "Dummy BadgeModel 1", description: "Simple Description Here",
-                unlockAfterXDays: 1),
+                unlockAfterXDays: 1
+            ),
             BadgeModel(
                 name: "Dummy BadgeModel 2", description: "Simple Description Here",
-                unlockAfterXDays: 3),
+                unlockAfterXDays: 3
+            ),
             BadgeModel(
                 name: "Dummy BadgeModel 3", description: "Simple Description Here",
-                unlockAfterXDays: 5),
+                unlockAfterXDays: 5
+            ),
             BadgeModel(
                 name: "Dummy BadgeModel 4", description: "Simple Description Here",
-                unlockAfterXDays: 7),
+                unlockAfterXDays: 7
+            ),
             BadgeModel(
                 name: "Dummy BadgeModel 5", description: "Simple Description Here",
-                unlockAfterXDays: 10),
+                unlockAfterXDays: 10
+            ),
         ]
     }
 

@@ -1,3 +1,8 @@
+// EmailService.swift
+// Copyright (c) 2025 StopPMO
+// All source code and related assets are the property of StopPMO.
+// All rights reserved.
+
 import Fluent
 import Vapor
 
@@ -16,13 +21,13 @@ struct EmailService {
             senderType: senderType, payload: payload, maxRetries: maxRetries, token: zohoAccessToken
         )
         let emailMessageModel = try await getEmailMessageModelFromEmailSent(
-            payload: payload, messageType: messageType)
+            payload: payload, messageType: messageType
+        )
 
         return .init(emailMessage: emailMessageModel, sentEmailZohoMailResponse: zohoResponse)
     }
 
-    public func saveEmail(_ emailMessageModel: EmailMessageModel) async throws -> EmailMessageModel
-    {
+    public func saveEmail(_ emailMessageModel: EmailMessageModel) async throws -> EmailMessageModel {
         do {
             try await emailMessageModel.save(on: db)
         } catch {
@@ -43,16 +48,17 @@ struct EmailService {
 
         return .init(
             messageType: messageType, subject: payload.subject, content: payload.content,
-            sentAt: Date(), sentTo: sentTo, sentToEmail: sentToEmail, sentFromEmail: sentFromEmail)
+            sentAt: Date(), sentTo: sentTo, sentToEmail: sentToEmail, sentFromEmail: sentFromEmail
+        )
     }
 
     private func getUserIDFromEmail(_ email: String) async throws -> UUID? {
         let user =
             try await UserModel
-            .query(on: db)
-            .filter(\.$email, .equal, email)
-            .field(\.$id)
-            .first()
+                .query(on: db)
+                .filter(\.$email, .equal, email)
+                .field(\.$id)
+                .first()
         let id = try? user?.requireID()
         return id
     }
@@ -68,11 +74,10 @@ struct EmailService {
         // the ability to generate a new access token.
         // Get that token. If it does not work, generate a new token and delete the previous ones
 
-        var token: String
-        if let zohoAccessToken {
-            token = zohoAccessToken
+        var token: String = if let zohoAccessToken {
+            zohoAccessToken
         } else {
-            token = try await refreshAndGetNewZohoAccessToken()
+            try await refreshAndGetNewZohoAccessToken()
         }
 
         guard
@@ -99,7 +104,8 @@ struct EmailService {
             let responseBodyJSON = try response.content.decode(SendZohoMailEmailResponse.self)
 
             try handleZohoMailEmailSentSuccess(
-                responseBodyJSON, fromAddress: fromAddress, toAddress: toAddress)
+                responseBodyJSON, fromAddress: fromAddress, toAddress: toAddress
+            )
 
             return responseBodyJSON
         } catch {
@@ -114,7 +120,8 @@ struct EmailService {
         maxRetries: Int
     ) async throws -> SendZohoMailEmailResponse {
         let _ = try response.content.decode(
-            SendZohoMailEmailInvalidTokenResponse.self)
+            SendZohoMailEmailInvalidTokenResponse.self
+        )
         if maxRetries == 0 {
             logger.error(
                 "Invalid ZOHO access token, unable to refresh token successfully. Reached max retries for sending emails from sender type '\(senderType.rawValue)' to email '\(payload.toAddress)'."
@@ -123,7 +130,8 @@ struct EmailService {
         }
         return try await sendZohoEmail(
             senderType: senderType, payload: payload, maxRetries: maxRetries - 1,
-            token: refreshAndGetNewZohoAccessToken())
+            token: refreshAndGetNewZohoAccessToken()
+        )
     }
 
     private func handleZohoMailEmailSentSuccess(
@@ -163,7 +171,8 @@ struct EmailService {
         let content = RefreshZohoMailAccessTokenPayload(
             client_id: clientID, client_secret: clientSecret, refresh_token: refreshToken,
             // grant_type: .refreshToken)
-            grant_type: "refresh_token")
+            grant_type: "refresh_token"
+        )
 
         let response = try await client.post(url) { req in
             try req.content.encode(content, as: .formData)

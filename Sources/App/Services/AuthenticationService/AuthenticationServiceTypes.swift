@@ -1,3 +1,8 @@
+// AuthenticationServiceTypes.swift
+// Copyright (c) 2025 StopPMO
+// All source code and related assets are the property of StopPMO.
+// All rights reserved.
+
 import Vapor
 
 struct UserBearerAuthenticator: AsyncBearerAuthenticator {
@@ -8,7 +13,8 @@ struct UserBearerAuthenticator: AsyncBearerAuthenticator {
         for request: Request
     ) async throws {
         let authService = AuthenticationService(
-            db: request.db, client: request.client, logger: request.logger)
+            db: request.db, client: request.client, logger: request.logger
+        )
         let user = try await authService.getUserFromBearerAuthorization(bearer)
         request.auth.login(user)
     }
@@ -22,7 +28,8 @@ struct UserBasicAuthenticator: AsyncBasicAuthenticator {
         for request: Request
     ) async throws {
         let authService = AuthenticationService(
-            db: request.db, client: request.client, logger: request.logger)
+            db: request.db, client: request.client, logger: request.logger
+        )
         let user = try await authService.getUserFromBasicAuthorization(basic)
         request.auth.login(user)
     }
@@ -40,7 +47,8 @@ struct LoginAndRegisterQuery: Content, Validatable {
     static func validations(_ validations: inout Validations) {
         validations.add(
             "authCode", as: Int.self, is: .valid, required: true,
-            customFailureDescription: "'authCode' query parameter not found.")
+            customFailureDescription: "'authCode' query parameter not found."
+        )
     }
 }
 

@@ -1,3 +1,8 @@
+// EmailServiceTypes.swift
+// Copyright (c) 2025 StopPMO
+// All source code and related assets are the property of StopPMO.
+// All rights reserved.
+
 import Fluent
 import Vapor
 
@@ -10,7 +15,7 @@ struct SendZohoMailEmailPayload: Content {
     static func fromTemplate(
         _ template: EmailTemplate, from fromAddress: String, to toAddress: String
     ) -> SendZohoMailEmailPayload {
-        return template.asSendEmailPayload(fromAddress: fromAddress, toAddress: toAddress)
+        template.asSendEmailPayload(fromAddress: fromAddress, toAddress: toAddress)
     }
 }
 
@@ -74,10 +79,11 @@ enum EmailTemplate {
         switch self {
         case let .authCode(code):
             // TODO: Use a leaf template as the content.
-            return .init(
+            .init(
                 fromAddress: fromAddress, toAddress: toAddress,
                 subject: "StopPMO App | Two-Factor Authentication Code | \(code)",
-                content: "Your authentication code is \(code).")
+                content: "Your authentication code is \(code)."
+            )
         }
     }
 }
@@ -88,7 +94,7 @@ enum EmailSenderType: String, Codable {
     func getSenderEmail() -> String {
         switch self {
         case .authentication:
-            return "auth@stoppmo.org"
+            "auth@stoppmo.org"
         }
     }
 }

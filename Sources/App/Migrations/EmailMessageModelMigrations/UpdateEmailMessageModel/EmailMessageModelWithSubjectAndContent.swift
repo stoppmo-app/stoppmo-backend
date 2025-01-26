@@ -1,3 +1,8 @@
+// EmailMessageModelWithSubjectAndContent.swift
+// Copyright (c) 2025 StopPMO
+// All source code and related assets are the property of StopPMO.
+// All rights reserved.
+
 import Fluent
 
 struct EmailMessageModelWithSubjectAndContent: AsyncMigration {
@@ -8,7 +13,6 @@ struct EmailMessageModelWithSubjectAndContent: AsyncMigration {
             .field("content", .string, .required)
             .update()
     }
-
 
     func revert(on database: Database) async throws {
         try await database.schema("email_messages")

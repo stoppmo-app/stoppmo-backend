@@ -1,3 +1,8 @@
+// AuthenticationController.swift
+// Copyright (c) 2025 StopPMO
+// All source code and related assets are the property of StopPMO.
+// All rights reserved.
+
 import Vapor
 
 struct AuthenticationController: RouteCollection {
@@ -7,15 +12,15 @@ struct AuthenticationController: RouteCollection {
             UserBasicAuthenticator(),
             UserModel.guardMiddleware()
         ) { basicProtected in
-            basicProtected.post("login", use: self.login)
-            basicProtected.post("login-code", use: self.sendLoginCode)
+            basicProtected.post("login", use: login)
+            basicProtected.post("login-code", use: sendLoginCode)
         }
 
-        auth.post("register-code", use: self.sendRegisterCode)
-        auth.post("register", use: self.register)
+        auth.post("register-code", use: sendRegisterCode)
+        auth.post("register", use: register)
 
         auth.group(UserBearerAuthenticator(), UserModel.guardMiddleware()) { bearerProtected in
-            bearerProtected.post("logout", use: self.logout)
+            bearerProtected.post("logout", use: logout)
         }
     }
 
@@ -49,7 +54,8 @@ struct AuthenticationController: RouteCollection {
             throw Abort(.internalServerError)
         }
         try await authService.saveAuthCode(
-            code: sendLoginCodeResponse.authCode, userEmail: userEmail, userID: userID)
+            code: sendLoginCodeResponse.authCode, userEmail: userEmail, userID: userID
+        )
 
         return .ok
     }
@@ -62,7 +68,8 @@ struct AuthenticationController: RouteCollection {
         let sendLoginCodeResponse = try await authService.sendRegisterCode(email: userEmail)
 
         try await authService.saveAuthCode(
-            code: sendLoginCodeResponse.authCode, userEmail: userEmail)
+            code: sendLoginCodeResponse.authCode, userEmail: userEmail
+        )
 
         return .ok
     }
