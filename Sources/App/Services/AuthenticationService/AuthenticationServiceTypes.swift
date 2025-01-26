@@ -34,7 +34,7 @@ struct SendAuthCodeResponse: Content {
     let sentEmailZohoMailResponse: SendZohoMailEmailResponse
 }
 
-struct LoginQuery: Content, Validatable {
+struct LoginAndRegisterQuery: Content, Validatable {
     let authCode: Int
 
     static func validations(_ validations: inout Validations) {
@@ -42,4 +42,13 @@ struct LoginQuery: Content, Validatable {
             "authCode", as: Int.self, is: .valid, required: true,
             customFailureDescription: "'authCode' query parameter not found.")
     }
+}
+
+struct SendRegisterCodePayload: Content {
+    let email: String
+}
+
+struct BearerTokenWithUserDTO: Content {
+    let token: String
+    let user: UserDTO.GetUser
 }

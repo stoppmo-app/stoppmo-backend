@@ -1,8 +1,6 @@
 import Fluent
 import Foundation
 
-// TODO: Create `RandomService` with a method called `randomInt` to generate a random integer (it should take a range as a param, with a default value)
-
 final class AuthenticationCodeModel: Model, @unchecked Sendable {
     static let schema = "auth_codes"
 
@@ -15,8 +13,10 @@ final class AuthenticationCodeModel: Model, @unchecked Sendable {
     @Field(key: "email")
     var email: String
 
-    @Parent(key: "user_id")
-    var user: UserModel
+    // TODO: add `email_message_id` parent field and create migration.
+    // Update code to set this field when saving `AuthenticationCodeModel`
+    @OptionalParent(key: "user_id")
+    var user: UserModel?
 
     @Field(key: "expires_at")
     var expiresAt: Date
@@ -37,7 +37,7 @@ final class AuthenticationCodeModel: Model, @unchecked Sendable {
         value: Int,
         email: String,
         expiresIn: TimeInterval = 300,
-        userID: UUID
+        userID: UUID? = nil
     ) {
         self.id = id
         self.value = value
