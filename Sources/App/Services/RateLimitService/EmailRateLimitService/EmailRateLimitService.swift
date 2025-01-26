@@ -22,7 +22,6 @@ struct EmailRateLimitService {
         intervalRateLimitReachedMessage: EmailIntervalRateLimitMessage,
         dailyRateLimitReachedMessage _: EmailDailyRateLimitMessage
     ) async throws -> GenericRateLimitResponse {
-
         let intervalRateLimit = rateLimit.intervalRateLimit
         let dailyRateLimit: Int = rateLimit.dailyRateLimit
 
@@ -76,7 +75,7 @@ struct EmailRateLimitService {
     ) async throws -> GenericRateLimitResponse {
         guard
             let latestSentAt =
-                try await EmailMessageModel
+            try await EmailMessageModel
                 .query(on: database)
                 .filter(\.$sentToEmail == email)
                 .sort(\.$sentAt, .descending)
@@ -105,7 +104,8 @@ struct EmailRateLimitService {
         let rateLimitResponse = try await emailsSent(
             email: email,
             rateLimit: .init(
-                intervalRateLimit: TimeInterval(intervalRateLimit), dailyRateLimit: dailyRateLimit),
+                intervalRateLimit: TimeInterval(intervalRateLimit), dailyRateLimit: dailyRateLimit
+            ),
             messageTypes: [messageType],
             intervalRateLimitReachedMessage: .fromEmailMessageType(
                 messageType: messageType,

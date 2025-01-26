@@ -72,10 +72,17 @@ enum RefreshZohoMailAccessTokenGrantType: String, Codable {
 }
 
 struct RefreshZohoMailAccessTokenResponse: Content {
-    let access_token: String
+    enum CodingKeys: String, CodingKey {
+        case accessToken = "access_token"
+        case scope
+        case tokenType = "token_type"
+        case expiresIn = "expires_in"
+    }
+
+    let accessToken: String
     let scope: String
-    let token_type: String
-    let expires_in: Int
+    let tokenType: String
+    let expiresIn: Int
 }
 
 enum EmailTemplate {

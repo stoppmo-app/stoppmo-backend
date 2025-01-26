@@ -114,34 +114,34 @@ final class UserModel: Model, Authenticatable, @unchecked Sendable {
         )
     }
 
-    func deleteDependents(db: Database, logger: Logger) async throws {
+    func deleteDependents(database: Database, logger: Logger) async throws {
         let id = try requireID()
         logger.info("Deleting all auth codes for user with ID '\(id)'.")
         try await AuthenticationCodeModel
-            .query(on: db)
+            .query(on: database)
             .filter(\.$user.$id == id)
             .delete()
 
         logger.info("Deleting all badges for user with ID '\(id)'.")
         try await UserBadgeModel
-            .query(on: db)
+            .query(on: database)
             .filter(\.$user.$id == id)
             .delete()
 
         logger.info("Deleting all email messages for user with ID '\(id)'.")
         try await EmailMessageModel
-            .query(on: db)
+            .query(on: database)
             .filter(\.$user.$id == id)
             .delete()
 
         try await EmailMessageModel
-            .query(on: db)
+            .query(on: database)
             .filter(\.$sentToEmail == email)
             .delete()
 
         logger.info("Deleting all tokens for user with ID '\(id)'.")
         try await UserTokenModel
-            .query(on: db)
+            .query(on: database)
             .filter(\.$user.$id == id)
             .delete()
     }

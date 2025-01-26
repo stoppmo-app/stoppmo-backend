@@ -27,8 +27,7 @@ struct EmailService {
         return .init(emailMessage: emailMessageModel, sentEmailZohoMailResponse: zohoResponse)
     }
 
-    public func saveEmail(_ emailMessageModel: EmailMessageModel) async throws -> EmailMessageModel
-    {
+    public func saveEmail(_ emailMessageModel: EmailMessageModel) async throws -> EmailMessageModel {
         do {
             try await emailMessageModel.save(on: database)
         } catch {
@@ -56,10 +55,10 @@ struct EmailService {
     private func getUserIDFromEmail(_ email: String) async throws -> UUID? {
         let user =
             try await UserModel
-            .query(on: database)
-            .filter(\.$email, .equal, email)
-            .field(\.$id)
-            .first()
+                .query(on: database)
+                .filter(\.$email, .equal, email)
+                .field(\.$id)
+                .first()
         let id = try? user?.requireID()
         return id
     }
@@ -180,7 +179,7 @@ struct EmailService {
         }
 
         let responseBodyJSON = try response.content.decode(RefreshZohoMailAccessTokenResponse.self)
-        let accessToken = responseBodyJSON.access_token
+        let accessToken = responseBodyJSON.accessToken
         return accessToken
     }
 

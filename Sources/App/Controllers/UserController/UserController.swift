@@ -57,7 +57,7 @@ struct UserController: RouteCollection {
             throw Abort(.notFound)
         }
 
-        try await user.deleteDependents(db: req.db, logger: req.logger)
+        try await user.deleteDependents(database: req.db, logger: req.logger)
         try await user.delete(on: req.db)
         return .noContent
     }

@@ -13,7 +13,7 @@ struct UserBearerAuthenticator: AsyncBearerAuthenticator {
         for request: Request
     ) async throws {
         let authService = AuthenticationService(
-            db: request.db, client: request.client, logger: request.logger
+            database: request.db, client: request.client, logger: request.logger
         )
         let user = try await authService.getUserFromBearerAuthorization(bearer)
         request.auth.login(user)
@@ -28,7 +28,7 @@ struct UserBasicAuthenticator: AsyncBasicAuthenticator {
         for request: Request
     ) async throws {
         let authService = AuthenticationService(
-            db: request.db, client: request.client, logger: request.logger
+            database: request.db, client: request.client, logger: request.logger
         )
         let user = try await authService.getUserFromBasicAuthorization(basic)
         request.auth.login(user)
