@@ -9,6 +9,10 @@ db.sqlite
 .env.*           # Ignore all .env.* files (including production and others)
 !/.env.example   # Don't ignore .env.example at the root
 !infra/**/.env.*.example  # Don't ignore .env.*.example files under infra/
+**/.env.review
+**/.env.production
+**/.env.staging
+**/.env.sandbox
 
 # Xcode
 #
