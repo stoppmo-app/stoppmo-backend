@@ -12,7 +12,6 @@ struct UserController: RouteCollection {
 
         users.get(use: getAllUsers)
 
-
         users.group(":userID") { user in
             user.get(use: getUserInfo)
             user.delete(use: deleteUser)

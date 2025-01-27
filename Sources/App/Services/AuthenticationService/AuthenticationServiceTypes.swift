@@ -44,10 +44,14 @@ struct SendAuthCodeResponse: Content {
 struct LoginAndRegisterQuery: Content, Validatable {
     let authCode: Int
 
+    enum CodingKeys: String, CodingKey {
+        case authCode = "auth_code"
+    }
+
     static func validations(_ validations: inout Validations) {
         validations.add(
-            "authCode", as: Int.self, is: .valid, required: true,
-            customFailureDescription: "'authCode' query parameter not found."
+            "auth_code", as: Int.self, is: .valid, required: true,
+            customFailureDescription: "'auth_code' query parameter not found."
         )
     }
 }

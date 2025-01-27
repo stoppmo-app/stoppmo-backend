@@ -11,12 +11,16 @@ struct AuthenticationService {
     let client: Client
     let logger: Logger
 
-    public func sendLoginCode(email: String) async throws -> SendAuthCodeResponse {
-        try await sendAuthCode(email: email, messageType: .authLogin)
+    public func sendLoginCode(email: String, renderer: ViewRenderer) async throws
+        -> SendAuthCodeResponse
+    {
+        try await sendAuthCode(email: email, messageType: .authLogin, renderer: renderer)
     }
 
-    public func sendRegisterCode(email: String) async throws -> SendAuthCodeResponse {
-        try await sendAuthCode(email: email, messageType: .authCreateAccount)
+    public func sendRegisterCode(email: String, renderer: ViewRenderer) async throws
+        -> SendAuthCodeResponse
+    {
+        try await sendAuthCode(email: email, messageType: .authCreateAccount, renderer: renderer)
     }
 
     public func saveAuthCode(
@@ -31,7 +35,9 @@ struct AuthenticationService {
         try await authCode.save(on: database)
     }
 
-    private func sendAuthCode(email: String, messageType: EmailMessageType, code: Int? = nil)
+    private func sendAuthCode(
+        email: String, messageType: EmailMessageType, renderer: ViewRenderer, code: Int? = nil
+    )
         async throws
         -> SendAuthCodeResponse
     {
@@ -63,12 +69,28 @@ struct AuthenticationService {
         // 1. Send email
         let authCode = code ?? Int.random(in: 0..<100_000)
 
+        let fromAddress = senderType.getSenderEmail()
+        guard
+            let authType = messageType.toAuthType()
+        else {
+            logger.error(
+                "Could not convert message type \(messageType.rawValue) to 'AuthCodeType' when sending auth code. This should never happen."
+            )
+            throw Abort(.internalServerError)
+        }
+        let sendEmailPayload = try await SendZohoMailEmailPayload.fromTemplate(
+            template: .authCode(code: authCode),
+            emailParams: .init(
+                fromAddress: fromAddress,
+                toAddress: email,
+                renderer: renderer,
+                authType: authType
+            )
+        )
+
         let sendEmailResponse = try await emailService.sendEmail(
             senderType: senderType,
-            payload: .fromTemplate(
-                .authCode(code: authCode), from: senderType.getSenderEmail(),
-                to: email
-            ),
+            payload: sendEmailPayload,
             messageType: messageType
         )
 
@@ -186,7 +208,6 @@ struct AuthenticationService {
     }
 
     func logout(user userID: UUID, req: Request) async throws {
-        // TODO: send messages to message service here
         try await removeOldBearerTokens(for: userID)
         req.auth.logout(UserModel.self)
     }

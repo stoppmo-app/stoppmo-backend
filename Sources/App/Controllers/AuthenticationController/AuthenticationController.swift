@@ -45,7 +45,8 @@ struct AuthenticationController: RouteCollection {
 
         let user = try req.auth.require(UserModel.self)
         let userEmail = user.email
-        let sendLoginCodeResponse = try await authService.sendLoginCode(email: userEmail)
+        let sendLoginCodeResponse = try await authService.sendLoginCode(
+            email: userEmail, renderer: req.view)
 
         let userID = try user.requireID()
 
@@ -66,7 +67,8 @@ struct AuthenticationController: RouteCollection {
         )
 
         let userEmail = try req.content.decode(SendRegisterCodePayload.self).email
-        let sendLoginCodeResponse = try await authService.sendRegisterCode(email: userEmail)
+        let sendLoginCodeResponse = try await authService.sendRegisterCode(
+            email: userEmail, renderer: req.view)
 
         let code = sendLoginCodeResponse.authCode
         let sentEmailMessageID = try sendLoginCodeResponse.savedEmail.requireID()

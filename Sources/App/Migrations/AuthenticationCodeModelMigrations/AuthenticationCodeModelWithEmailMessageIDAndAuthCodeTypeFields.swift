@@ -6,7 +6,7 @@ struct AuthenticationCodeModelWithEmailMessageIDAndAuthCodeTypeFields: AsyncMigr
     func prepare(on database: Database) async throws {
         let authCodeType = try await database.enum("auth_code_type")
             .case("login")
-            .case("createAccount")
+            .case("register")
             .create()
 
         try await database.schema(schema)

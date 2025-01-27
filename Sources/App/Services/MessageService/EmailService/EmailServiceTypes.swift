@@ -6,6 +6,13 @@
 import Fluent
 import Vapor
 
+struct FromEmailTemplateToSendZohoEmailPayloadParams {
+    let fromAddress: String
+    let toAddress: String
+    let renderer: ViewRenderer
+    let authType: AuthCodeType
+}
+
 struct SendZohoMailEmailPayload: Content {
     let fromAddress: String
     let toAddress: String
@@ -13,9 +20,9 @@ struct SendZohoMailEmailPayload: Content {
     let content: String
 
     static func fromTemplate(
-        _ template: EmailTemplate, from fromAddress: String, to toAddress: String
-    ) -> SendZohoMailEmailPayload {
-        template.asSendEmailPayload(fromAddress: fromAddress, toAddress: toAddress)
+        template: EmailTemplate, emailParams: FromEmailTemplateToSendZohoEmailPayloadParams
+    ) async throws -> SendZohoMailEmailPayload {
+        try await template.asSendEmailPayload(emailParams)
     }
 }
 
@@ -88,15 +95,36 @@ struct RefreshZohoMailAccessTokenResponse: Content {
 enum EmailTemplate {
     case authCode(code: Int)
 
-    func asSendEmailPayload(fromAddress: String, toAddress: String) -> SendZohoMailEmailPayload {
+    struct SendEmailLeafTemplateContext: Encodable {
+        let subject: String
+        let authType: String
+        let codeArray: [Int]
+    }
+
+    func asSendEmailPayload(_ params: FromEmailTemplateToSendZohoEmailPayloadParams) async throws
+        -> SendZohoMailEmailPayload
+    {
+        let fromAddress = params.fromAddress
+        let toAddress = params.toAddress
+        let renderer = params.renderer
+        let authType = params.authType
+
         switch self {
         case let .authCode(code):
-            // TODO: Use a leaf template as the content.
-            .init(
-                fromAddress: fromAddress, toAddress: toAddress,
-                subject: "StopPMO App | Two-Factor Authentication Code | \(code)",
-                content: "Your authentication code is \(code)."
-            )
+            let emailSubject = "StopPMO App | Two-Factor Authentication Code | \(code)"
+            let codeArray = String(code).compactMap { $0.wholeNumberValue }
+
+            let sendEmailView: View = try await renderer.render(
+                "sendEmail",
+                SendEmailLeafTemplateContext(
+                    subject: emailSubject, authType: authType.rawValue, codeArray: codeArray)
+            ).get()
+
+            let sendEmailHTMLString = String(buffer: sendEmailView.data)
+
+            return .init(
+                fromAddress: fromAddress, toAddress: toAddress, subject: emailSubject,
+                content: sendEmailHTMLString)
         }
     }
 }

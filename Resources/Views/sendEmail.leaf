@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="Public/sendEmail.css">
+</head>
+
+<body>
+  <h1>#(subject)</h1>
+  <p>
+    Welcome to StopPMO! Your #(authType) code is:
+  </p>
+  <div class="auth-code-parent">
+    #for(number in codeArray):
+    <div class="auth-code-item">#(number)</div>
+    #endfor
+  </div>
+  #if(authType == "login"):
+    <p>
+        If you did not initiate this log-in, you should immediately
+        <a href="https://stoppmo.org/help?post_title=change-account-password" target="_blank">change your StopPMO password</a> to ensure account security.
+    </p>
+  #endif
+</body>
+</html>
