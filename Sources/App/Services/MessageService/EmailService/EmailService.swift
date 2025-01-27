@@ -70,17 +70,21 @@ struct EmailService {
     )
         async throws -> SendZohoMailEmailResponse
     {
-        // TODO: Use Redis or the database to store the latest generated token
-        // Reason? If a lot of emails get sent in a short period of time, Zoho Mail will rate limit
-        // the ability to generate a new access token.
-        // Get that token. If it does not work, generate a new token and delete the previous ones
+        var refreshedToken: Bool = false
 
-        let token: String =
+        let token: String = try await {
             if let zohoAccessToken {
-                zohoAccessToken
+                return zohoAccessToken
             } else {
-                try await refreshAndGetNewZohoAccessToken()
+                guard
+                    let tokenFromDatabase = try await getZohoAccessToken()
+                else {
+                    refreshedToken = true
+                    return try await refreshAndSaveZohoAccessToken()
+                }
+                return tokenFromDatabase
             }
+        }()
 
         guard
             let senderEmailID = Environment.get("ZOHO_MAIL_AUTH_SENDER_ID")
@@ -111,6 +115,12 @@ struct EmailService {
 
             return responseBodyJSON
         } catch {
+            if refreshedToken == true {
+                logger.error(
+                    "New Zoho access token was generated and used to send and email using Zoho Mail API (error was not caused by invalid access token). Error: \(String(reflecting: error))"
+                )
+                throw Abort(.internalServerError)
+            }
             return try await handleZohoMailEmailSentInvalidToken(
                 response: response, senderType: senderType, payload: payload, maxRetries: maxRetries
             )
@@ -126,13 +136,13 @@ struct EmailService {
         )
         if maxRetries == 0 {
             logger.error(
-                "Invalid ZOHO access token, unable to refresh token successfully. Reached max retries for sending emails from sender type '\(senderType.rawValue)' to email '\(payload.toAddress)'."
+                "Invalid Zoho access token, unable to refresh token successfully. Reached max retries for sending emails from sender type '\(senderType.rawValue)' to email '\(payload.toAddress)'."
             )
             throw Abort(.custom(code: 500, reasonPhrase: "Max email send retries reached."))
         }
         return try await sendZohoEmail(
             senderType: senderType, payload: payload, maxRetries: maxRetries - 1,
-            token: refreshAndGetNewZohoAccessToken()
+            token: refreshAndSaveZohoAccessToken()
         )
     }
 
@@ -149,8 +159,38 @@ struct EmailService {
         }
     }
 
-    private func refreshAndGetNewZohoAccessToken() async throws -> String {
+    private func getZohoAccessToken() async throws -> String? {
+        guard
+            let pair =
+                try await KeyValuePairModel
+                .query(on: database)
+                .filter(\.$pairType == .zohoAccessToken)
+                .sort(\.$createdAt, .descending)  // get latest
+                .field(\.$value)
+                .first()
+        else {
+            logger.info("Access token not found in key value pair table.")
+            return nil
+        }
+        return pair.value
+    }
+
+    private func saveZohoAccessToken(_ token: String) async throws {
+        let pair = KeyValuePairModel(
+            pairType: .zohoAccessToken, key: "zoho_access_token", value: token)
+        do {
+            try await pair.save(on: database)
+        } catch {
+            logger.error(
+                "Failed to save Zoho access token to key value pair table. Error: \(String(reflecting: error))"
+            )
+        }
+    }
+
+    private func refreshAndSaveZohoAccessToken() async throws -> String {
         let url = URI(string: "https://accounts.zoho.com/oauth/v2/token")
+
+        // Try to get access token on table. If it exists, return it. If not, generate one and save it.
 
         guard
             let clientID = Environment.get("ZOHO_CLIENT_ID")
@@ -181,6 +221,9 @@ struct EmailService {
 
         let responseBodyJSON = try response.content.decode(RefreshZohoMailAccessTokenResponse.self)
         let accessToken = responseBodyJSON.accessToken
+
+        try await saveZohoAccessToken(accessToken)
+
         return accessToken
     }
 }

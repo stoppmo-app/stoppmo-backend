@@ -49,8 +49,8 @@ final class KeyValuePairModel: Model, Authenticatable, @unchecked Sendable {
         pairType: KeyValuePairModelType,
         key: String,
         value: String,
-        metadata: String?,
-        userID: UUID?
+        metadata: String? = nil,
+        userID: UUID? = nil
     ) {
         self.id = id
         self.pairType = pairType
