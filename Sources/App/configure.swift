@@ -15,7 +15,6 @@ public func configure(_ app: Application) async throws {
 
     // In production environment, it will use DATABASE_URL
     if let databaseURL = Environment.get("DATABASE_URL") {
-        app.logger.info("Database URL: \(databaseURL)")
         try app.databases.use(.postgres(url: databaseURL), as: .psql)
     } else {
         try app.databases.use(

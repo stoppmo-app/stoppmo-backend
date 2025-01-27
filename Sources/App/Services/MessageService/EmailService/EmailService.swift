@@ -98,8 +98,6 @@ struct EmailService {
         let fromAddress = payload.fromAddress
         let toAddress = payload.toAddress
 
-        logger.info("Sending an email from '\(fromAddress)' to '\(toAddress)'")
-
         let response = try await client.post(url) { req in
             try req.content.encode(payload)
             let auth = BearerAuthorization(token: token)
@@ -169,7 +167,6 @@ struct EmailService {
                 .field(\.$value)
                 .first()
         else {
-            logger.info("Access token not found in key value pair table.")
             return nil
         }
         return pair.value
@@ -189,8 +186,6 @@ struct EmailService {
 
     private func refreshAndSaveZohoAccessToken() async throws -> String {
         let url = URI(string: "https://accounts.zoho.com/oauth/v2/token")
-
-        // Try to get access token on table. If it exists, return it. If not, generate one and save it.
 
         guard
             let clientID = Environment.get("ZOHO_CLIENT_ID")

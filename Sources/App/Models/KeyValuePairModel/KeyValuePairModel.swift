@@ -13,7 +13,7 @@ final class KeyValuePairModel: Model, Authenticatable, @unchecked Sendable {
     @ID(key: .id)
     var id: UUID?
 
-    @Field(key: "pair_type")
+    @Enum(key: "pair_type")
     var pairType: KeyValuePairModelType
 
     @Field(key: "key")
