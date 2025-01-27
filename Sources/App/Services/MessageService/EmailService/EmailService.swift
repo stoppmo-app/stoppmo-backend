@@ -27,8 +27,7 @@ struct EmailService {
         return .init(emailMessage: emailMessageModel, sentEmailZohoMailResponse: zohoResponse)
     }
 
-    public func saveEmail(_ emailMessageModel: EmailMessageModel) async throws -> EmailMessageModel
-    {
+    public func saveEmail(_ emailMessageModel: EmailMessageModel) async throws -> EmailMessageModel {
         do {
             try await emailMessageModel.save(on: database)
         } catch {
@@ -56,10 +55,10 @@ struct EmailService {
     private func getUserIDFromEmail(_ email: String) async throws -> UUID? {
         let user =
             try await UserModel
-            .query(on: database)
-            .filter(\.$email, .equal, email)
-            .field(\.$id)
-            .first()
+                .query(on: database)
+                .filter(\.$email, .equal, email)
+                .field(\.$id)
+                .first()
         let id = try? user?.requireID()
         return id
     }
@@ -70,7 +69,7 @@ struct EmailService {
     )
         async throws -> SendZohoMailEmailResponse
     {
-        var refreshedToken: Bool = false
+        var refreshedToken = false
 
         let token: String = try await {
             if let zohoAccessToken {
@@ -160,10 +159,10 @@ struct EmailService {
     private func getZohoAccessToken() async throws -> String? {
         guard
             let pair =
-                try await KeyValuePairModel
+            try await KeyValuePairModel
                 .query(on: database)
                 .filter(\.$pairType == .zohoAccessToken)
-                .sort(\.$createdAt, .descending)  // get latest
+                .sort(\.$createdAt, .descending) // get latest
                 .field(\.$value)
                 .first()
         else {
@@ -174,7 +173,8 @@ struct EmailService {
 
     private func saveZohoAccessToken(_ token: String) async throws {
         let pair = KeyValuePairModel(
-            pairType: .zohoAccessToken, key: "zoho_access_token", value: token)
+            pairType: .zohoAccessToken, key: "zoho_access_token", value: token
+        )
         do {
             try await pair.save(on: database)
         } catch {

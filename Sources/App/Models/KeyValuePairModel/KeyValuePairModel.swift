@@ -1,3 +1,8 @@
+// KeyValuePairModel.swift
+// Copyright (c) 2025 StopPMO
+// All source code and related assets are the property of StopPMO.
+// All rights reserved.
+
 import Fluent
 import Foundation
 import Vapor
@@ -47,6 +52,6 @@ final class KeyValuePairModel: Model, Authenticatable, @unchecked Sendable {
         self.key = key
         self.value = value
         self.metadata = metadata
-        self.$user.id = userID
+        $user.id = userID
     }
 }

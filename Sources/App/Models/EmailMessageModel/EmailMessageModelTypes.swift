@@ -11,9 +11,9 @@ enum EmailMessageType: String, Codable {
     func toAuthType() -> AuthCodeType? {
         switch self {
         case .authLogin:
-            return .login
+            .login
         case .authCreateAccount:
-            return .register
+            .register
         }
         // Comment this in once there are more message type cases added
         // default:

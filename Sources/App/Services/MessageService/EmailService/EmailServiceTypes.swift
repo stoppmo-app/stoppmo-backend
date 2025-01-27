@@ -112,19 +112,21 @@ enum EmailTemplate {
         switch self {
         case let .authCode(code):
             let emailSubject = "StopPMO App | Two-Factor Authentication Code | \(code)"
-            let codeArray = String(code).compactMap { $0.wholeNumberValue }
+            let codeArray = String(code).compactMap(\.wholeNumberValue)
 
             let sendEmailView: View = try await renderer.render(
                 "sendEmail",
                 SendEmailLeafTemplateContext(
-                    subject: emailSubject, authType: authType.rawValue, codeArray: codeArray)
+                    subject: emailSubject, authType: authType.rawValue, codeArray: codeArray
+                )
             ).get()
 
             let sendEmailHTMLString = String(buffer: sendEmailView.data)
 
             return .init(
                 fromAddress: fromAddress, toAddress: toAddress, subject: emailSubject,
-                content: sendEmailHTMLString)
+                content: sendEmailHTMLString
+            )
         }
     }
 }

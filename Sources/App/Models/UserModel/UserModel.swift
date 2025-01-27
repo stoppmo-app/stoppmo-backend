@@ -110,7 +110,7 @@ final class UserModel: Model, Authenticatable, @unchecked Sendable {
         )
     }
 
-    func deleteDependents(database: Database, logger: Logger) async throws {
+    func deleteDependents(database: Database, logger _: Logger) async throws {
         let id = try requireID()
         try await AuthenticationCodeModel
             .query(on: database)

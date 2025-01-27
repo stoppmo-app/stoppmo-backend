@@ -55,7 +55,7 @@ final class AuthenticationCodeModel: Model, @unchecked Sendable {
         self.email = email
         self.codeType = codeType
         expiresAt = Date().addingTimeInterval(expiresIn)
-        self.$user.id = userID
-        self.$emailMessage.id = emailMessageID
+        $user.id = userID
+        $emailMessage.id = emailMessageID
     }
 }
