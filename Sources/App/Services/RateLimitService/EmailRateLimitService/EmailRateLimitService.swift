@@ -75,7 +75,7 @@ struct EmailRateLimitService {
     ) async throws -> GenericRateLimitResponse {
         guard
             let latestSentAt =
-            try await EmailMessageModel
+                try await EmailMessageModel
                 .query(on: database)
                 .filter(\.$sentToEmail == email)
                 .sort(\.$sentAt, .descending)

@@ -115,7 +115,7 @@ enum EmailTemplate {
             let codeArray = String(code).compactMap(\.wholeNumberValue)
 
             let sendEmailView: View = try await renderer.render(
-                "sendEmail",
+                "sendAuthEmail",
                 SendEmailLeafTemplateContext(
                     subject: emailSubject, authType: authType.rawValue, codeArray: codeArray
                 )
