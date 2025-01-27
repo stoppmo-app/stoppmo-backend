@@ -32,19 +32,35 @@ public func configure(_ app: Application) async throws {
         )
     }
 
-    // use leaf templates for views
+    // Leaf Templates
     app.views.use(.leaf)
 
-    // add all migrations
-    app.migrations.addGroup(UserModelMigrations())
-    app.migrations.addGroup(UserTokenModelMigrations())
-    app.migrations.addGroup(BadgeModelMigrations())
-    app.migrations.addGroup(UserBadgeModelMigrations())
-    app.migrations.addGroup(EmailMessageModelMigrations())
-    app.migrations.addGroup(AuthenticationCodeModelMigrations())
-    app.migrations.addGroup(KeyValuePairModelMigrations())
+    // Migrations
+    app.migrations.add(CreateUserModel())
+    app.migrations.add(UserModelWithPassword1())
+    app.migrations.add(UserModelWithDeletedAt1())
+    app.migrations.add(UserModelWithUniqueFields1())
+    app.migrations.add(CreateUserTokenModel())
+    app.migrations.add(UserTokenModelWithTimestamps1())
+    app.migrations.add(UserTokenModelWithExpiresAtField1())
+    app.migrations.add(UserTokenModelWithExpiresAtAsTimestampZ())
+    app.migrations.add(CreateBadgeModel())
+    app.migrations.add(BadgeModelWithDeletedAt1())
+    app.migrations.add(BadgeModelWithUniqueUnlockAfterDaysField1())
+    app.migrations.add(SeedBadgesModel())
+    app.migrations.add(CreateUserBadgeModel())
+    app.migrations.add(UserBadgeModelWithParentIDReferences1())
+    app.migrations.add(UserBadgeModelWithDeletedAt1())
+    app.migrations.add(CreateEmailMessageModel())
+    app.migrations.add(EmailMessageModelWithSentToAndSentFromEmail())
+    app.migrations.add(EmailMessageModelWithEmailMessageTypeEnum())
+    app.migrations.add(EmailMessageModelWithSubjectAndContent())
+    app.migrations.add(EmailMessageModelWithTimestampzSentAt())
+    app.migrations.add(CreateAuthenticationCodeModel())
+    app.migrations.add(AuthenticationCodeModelTimestampZExpiresAt())
+    app.migrations.add(AuthenticationCodeModelWithEmailMessageIDAndAuthCodeTypeFields())
+    app.migrations.add(CreateKeyValuePairModel())
 
-    // Automatically run migrations on database
     try await app.autoMigrate()
 
     // register routes
