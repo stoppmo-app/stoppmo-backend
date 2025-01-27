@@ -11,7 +11,7 @@ struct UserController: RouteCollection {
         let users = routes.grouped("users")
 
         users.get(use: getAllUsers)
-        users.post(use: createUser)
+
 
         users.group(":userID") { user in
             user.get(use: getUserInfo)
@@ -23,16 +23,6 @@ struct UserController: RouteCollection {
     @Sendable
     func getAllUsers(req: Request) async throws -> [UserDTO.GetUser] {
         try await UserModel.query(on: req.db).all().map { $0.toDTO() }
-    }
-
-    @Sendable
-    func createUser(req: Request) async throws -> UserDTO.GetUser {
-        let user = try UserModel.fromDTO(req.content.decode(UserDTO.CreateUser.self))
-
-        // TODO: add some two step verification to verify the email belongs to the creator
-
-        try await user.save(on: req.db)
-        return user.toDTO()
     }
 
     @Sendable

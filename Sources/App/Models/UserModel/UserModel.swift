@@ -7,10 +7,6 @@ import Fluent
 import Foundation
 import Vapor
 
-enum Role: String, Codable {
-    case admin, member
-}
-
 final class UserModel: Model, Authenticatable, @unchecked Sendable {
     static let schema = "users"
 
@@ -33,7 +29,7 @@ final class UserModel: Model, Authenticatable, @unchecked Sendable {
     var passwordHash: String
 
     @Enum(key: "role")
-    var role: Role
+    var role: UserRole
 
     @Field(key: "profile_picture_url")
     var profilePictureURL: String
@@ -68,7 +64,7 @@ final class UserModel: Model, Authenticatable, @unchecked Sendable {
         username: String,
         email: String,
         passwordHash: String,
-        role: Role,
+        role: UserRole,
         profilePictureURL: String,
         bio: String,
         phoneNumber: String,

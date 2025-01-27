@@ -24,8 +24,6 @@ struct AuthenticationController: RouteCollection {
         }
     }
 
-    // TODO: Remove `createUser` route in `UserController`
-
     @Sendable
     func register(req: Request) async throws -> BearerTokenWithUserDTO {
         let authService = AuthenticationService(
@@ -49,17 +47,14 @@ struct AuthenticationController: RouteCollection {
         let userEmail = user.email
         let sendLoginCodeResponse = try await authService.sendLoginCode(email: userEmail)
 
-        guard
-            let userID = user.id
-        else {
-            req.logger.error(
-                "Failed to get user ID when saving auth code for user with email '\(userEmail)'. This should never happen."
-            )
-            throw Abort(.internalServerError)
-        }
+        let userID = try user.requireID()
+
+        let code = sendLoginCodeResponse.authCode
+        let sentEmailMessageID = try sendLoginCodeResponse.savedEmail.requireID()
+
         try await authService.saveAuthCode(
-            code: sendLoginCodeResponse.authCode, userEmail: userEmail, userID: userID
-        )
+            code: code, userEmail: userEmail, sentEmailMessageID: sentEmailMessageID,
+            authCodeType: .login, userID: userID)
 
         return .ok
     }
@@ -73,9 +68,12 @@ struct AuthenticationController: RouteCollection {
         let userEmail = try req.content.decode(SendRegisterCodePayload.self).email
         let sendLoginCodeResponse = try await authService.sendRegisterCode(email: userEmail)
 
+        let code = sendLoginCodeResponse.authCode
+        let sentEmailMessageID = try sendLoginCodeResponse.savedEmail.requireID()
+
         try await authService.saveAuthCode(
-            code: sendLoginCodeResponse.authCode, userEmail: userEmail
-        )
+            code: code, userEmail: userEmail, sentEmailMessageID: sentEmailMessageID,
+            authCodeType: .login)
 
         return .ok
     }

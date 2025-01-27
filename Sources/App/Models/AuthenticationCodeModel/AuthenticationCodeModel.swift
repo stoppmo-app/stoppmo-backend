@@ -18,13 +18,14 @@ final class AuthenticationCodeModel: Model, @unchecked Sendable {
     @Field(key: "email")
     var email: String
 
-    // TODO: add `email_message_id` parent field and create migration.
-    // Update code to set this field when saving `AuthenticationCodeModel`
+    @Enum(key: "code_type")
+    var codeType: AuthCodeType
 
-    // TODO: Set `auth_code_type` to `email_message_type` enum
-    // (maybe rename the enum to something more generic and update `EmailMessageModel`) to use that instead
     @OptionalParent(key: "user_id")
     var user: UserModel?
+
+    @Parent(key: "email_message_id")
+    var emailMessage: EmailMessageModel
 
     @Field(key: "expires_at")
     var expiresAt: Date
@@ -45,12 +46,16 @@ final class AuthenticationCodeModel: Model, @unchecked Sendable {
         value: Int,
         email: String,
         expiresIn: TimeInterval = 300,
+        emailMessageID: UUID,
+        codeType: AuthCodeType,
         userID: UUID? = nil
     ) {
         self.id = id
         self.value = value
         self.email = email
+        self.codeType = codeType
         expiresAt = Date().addingTimeInterval(expiresIn)
-        $user.id = userID
+        self.$user.id = userID
+        self.$emailMessage.id = emailMessageID
     }
 }

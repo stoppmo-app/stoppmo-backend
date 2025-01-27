@@ -9,5 +9,6 @@ struct AuthenticationCodeModelMigrations: MigrationsGroup {
     var migrations: [any Migration] = [
         CreateAuthenticationCodeModel(),
         AuthenticationCodeModelTimestampZExpiresAt(),
+        AuthenticationCodeModelWithEmailMessageIDAndAuthCodeTypeFields(),
     ]
 }

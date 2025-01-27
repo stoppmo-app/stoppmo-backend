@@ -2,11 +2,6 @@ import Fluent
 import Foundation
 import Vapor
 
-// TODO: make enum in database (part of create migration)
-enum KeyValuePairModelType: String, Codable {
-    case zohoAccessToken
-}
-
 final class KeyValuePairModel: Model, Authenticatable, @unchecked Sendable {
     static let schema = "key_value_pairs"
 
@@ -19,13 +14,8 @@ final class KeyValuePairModel: Model, Authenticatable, @unchecked Sendable {
     @Field(key: "key")
     var key: String
 
-    // TODO: make value any `Codable` type
     @Field(key: "value")
     var value: String
-
-    // TODO: Make so thot metadata can be a dictionary
-    // @OptionalField(key: "metadata")
-    // var metadata: [String: String]?
 
     @OptionalField(key: "metadata")
     var metadata: String?
