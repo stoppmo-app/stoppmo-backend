@@ -6,8 +6,10 @@
 import Fluent
 
 struct UserTokenModelWithTimestamps1: AsyncMigration {
+    let schema = "user_tokens"
+
     func prepare(on database: Database) async throws {
-        try await database.schema("user_tokens")
+        try await database.schema(schema)
             .field("created_at", .date, .required)
             .field("updated_at", .date)
             .field("deleted_at", .date)
@@ -15,7 +17,7 @@ struct UserTokenModelWithTimestamps1: AsyncMigration {
     }
 
     func revert(on database: Database) async throws {
-        try await database.schema("user_tokens")
+        try await database.schema(schema)
             .deleteField("created_at")
             .deleteField("updated_at")
             .deleteField("deleted_at")

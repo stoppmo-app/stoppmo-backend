@@ -6,14 +6,16 @@
 import Fluent
 
 struct UserTokenModelWithExpiresAtAsTimestampZ: AsyncMigration {
+    let schema = "user_tokens"
+
     func prepare(on database: Database) async throws {
-        try await database.schema("user_tokens")
+        try await database.schema(schema)
             .updateField("expires_at", .datetime)
             .update()
     }
 
     func revert(on database: Database) async throws {
-        try await database.schema("user_tokens")
+        try await database.schema(schema)
             .updateField("expires_at", .date)
             .update()
     }

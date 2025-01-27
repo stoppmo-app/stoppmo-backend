@@ -6,14 +6,16 @@
 import Fluent
 
 struct UserModelWithDeletedAt1: AsyncMigration {
+    let schema = "users"
+
     func prepare(on database: Database) async throws {
-        try await database.schema("users")
+        try await database.schema(schema)
             .field("deleted_at", .date)
             .update()
     }
 
     func revert(on database: Database) async throws {
-        try await database.schema("users")
+        try await database.schema(schema)
             .deleteField("deleted_at")
             .update()
     }

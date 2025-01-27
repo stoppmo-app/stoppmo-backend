@@ -6,8 +6,10 @@
 import Fluent
 
 struct EmailMessageModelWithSubjectAndContent: AsyncMigration {
+    let schema = "email_messages"
+
     func prepare(on database: Database) async throws {
-        try await database.schema("email_messages")
+        try await database.schema(schema)
             .deleteField("message")
             .field("subject", .string, .required)
             .field("content", .string, .required)
@@ -15,7 +17,7 @@ struct EmailMessageModelWithSubjectAndContent: AsyncMigration {
     }
 
     func revert(on database: Database) async throws {
-        try await database.schema("email_messages")
+        try await database.schema(schema)
             .field("message", .string, .required)
             .deleteField("subject")
             .deleteField("subject")

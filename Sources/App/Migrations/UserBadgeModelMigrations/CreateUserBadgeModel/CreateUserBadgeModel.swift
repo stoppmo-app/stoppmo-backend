@@ -6,8 +6,10 @@
 import Fluent
 
 struct CreateUserBadgeModel: AsyncMigration {
+    let schema = "user_badges"
+
     func prepare(on database: Database) async throws {
-        try await database.schema("user_badges")
+        try await database.schema(schema)
             .id()
             .field("started_at", .date, .required)
             .field("claimed_at", .date, .required)
@@ -19,6 +21,6 @@ struct CreateUserBadgeModel: AsyncMigration {
     }
 
     func revert(on database: Database) async throws {
-        try await database.schema("user_badges").delete()
+        try await database.schema(schema).delete()
     }
 }

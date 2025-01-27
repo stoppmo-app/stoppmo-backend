@@ -6,14 +6,16 @@
 import Fluent
 
 struct AuthenticationCodeModelTimestampZExpiresAt: AsyncMigration {
+    let schema = "auth_codes"
+
     func prepare(on database: Database) async throws {
-        try await database.schema("auth_codes")
+        try await database.schema(schema)
             .updateField("expires_at", .datetime)
             .update()
     }
 
     func revert(on database: Database) async throws {
-        try await database.schema("auth_codes")
+        try await database.schema(schema)
             .updateField("expires_at", .date)
             .update()
     }

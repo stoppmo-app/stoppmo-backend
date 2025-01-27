@@ -6,14 +6,16 @@
 import Fluent
 
 struct UserModelWithPassword1: AsyncMigration {
+    let schema = "users"
+
     func prepare(on database: Database) async throws {
-        try await database.schema("users")
+        try await database.schema(schema)
             .field("password_hash", .string, .required)
             .update()
     }
 
     func revert(on database: Database) async throws {
-        try await database.schema("users")
+        try await database.schema(schema)
             .deleteField("password_hash")
             .deleteUnique(on: "email")
             .update()

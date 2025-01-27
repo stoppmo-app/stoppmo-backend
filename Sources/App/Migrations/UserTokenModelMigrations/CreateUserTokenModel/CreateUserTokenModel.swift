@@ -6,8 +6,9 @@
 import Fluent
 
 struct CreateUserTokenModel: AsyncMigration {
+    let schema = "user_tokens"
     func prepare(on database: Database) async throws {
-        try await database.schema("user_tokens")
+        try await database.schema(schema)
             .id()
             .field("value", .string, .required)
             .field("user_id", .uuid, .required, .references("users", "id"))
@@ -16,6 +17,6 @@ struct CreateUserTokenModel: AsyncMigration {
     }
 
     func revert(on database: Database) async throws {
-        try await database.schema("user_tokens").delete()
+        try await database.schema(schema).delete()
     }
 }

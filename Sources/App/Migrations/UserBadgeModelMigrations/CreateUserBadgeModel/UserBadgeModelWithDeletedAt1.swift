@@ -6,14 +6,16 @@
 import Fluent
 
 struct UserBadgeModelWithDeletedAt1: AsyncMigration {
+    let schema = "user_badges"
+
     func prepare(on database: Database) async throws {
-        try await database.schema("user_badges")
+        try await database.schema(schema)
             .field("deleted_at", .date)
             .update()
     }
 
     func revert(on database: Database) async throws {
-        try await database.schema("user_badges")
+        try await database.schema(schema)
             .deleteField("deleted_at")
             .update()
     }
