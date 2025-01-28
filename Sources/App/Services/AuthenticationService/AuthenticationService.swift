@@ -11,33 +11,33 @@ struct AuthenticationService {
     let client: Client
     let logger: Logger
 
-    public func sendLoginCode(email: String, renderer: ViewRenderer) async throws
+    public func sendLoginCode(email: String) async throws
         -> SendAuthCodeResponse
     {
-        try await sendAuthCode(email: email, messageType: .authLogin, renderer: renderer)
+        try await sendAuthCode(email: email, messageType: .authLogin)
     }
 
-    public func sendRegisterCode(email: String, renderer: ViewRenderer) async throws
+    public func sendRegisterCode(email: String) async throws
         -> SendAuthCodeResponse
     {
-        try await sendAuthCode(email: email, messageType: .authCreateAccount, renderer: renderer)
+        try await sendAuthCode(email: email, messageType: .authCreateAccount)
     }
 
     public func saveAuthCode(
         code: Int, userEmail: String, sentEmailMessageID: UUID, authCodeType: AuthCodeType,
-        userID _: UUID? = nil
+        userID: UUID? = nil
     )
         async throws
     {
         let authCode = AuthenticationCodeModel(
             value: code, email: userEmail, emailMessageID: sentEmailMessageID,
-            codeType: authCodeType
+            codeType: authCodeType, userID: userID
         )
         try await authCode.save(on: database)
     }
 
     private func sendAuthCode(
-        email: String, messageType: EmailMessageType, renderer: ViewRenderer, code: Int? = nil
+        email: String, messageType: EmailMessageType, code: Int? = nil
     )
         async throws
         -> SendAuthCodeResponse
@@ -70,7 +70,7 @@ struct AuthenticationService {
         let senderType: EmailSenderType = .authentication
 
         // 1. Send email
-        let authCode = code ?? Int.random(in: 0 ..< 100_000)
+        let authCode = code ?? Int.random(in: 0..<100_000)
 
         let fromAddress = senderType.getSenderEmail()
         guard
@@ -81,12 +81,12 @@ struct AuthenticationService {
             )
             throw Abort(.internalServerError)
         }
+
         let sendEmailPayload = try await SendZohoMailEmailPayload.fromTemplate(
             template: .authCode(code: authCode),
             emailParams: .init(
                 fromAddress: fromAddress,
                 toAddress: email,
-                renderer: renderer,
                 authType: authType
             )
         )
@@ -110,10 +110,10 @@ struct AuthenticationService {
     private func handleUserAccountAlreadyExistsWith(email: String) async throws {
         let user =
             try await UserModel
-                .query(on: database)
-                .filter(\.$email == email)
-                .field(\.$id)
-                .first()
+            .query(on: database)
+            .filter(\.$email == email)
+            .field(\.$id)
+            .first()
 
         if user != nil {
             throw Abort(
@@ -134,8 +134,9 @@ struct AuthenticationService {
     }
 
     func login(user: UserModel, authCode code: Int) async throws -> BearerTokenWithUserDTO {
+        let codeType: AuthCodeType = .login
         guard
-            let authCode = try await getAuthCode(code, email: user.email)
+            let authCode = try await getAuthCode(code, email: user.email, codeType: codeType)
         else {
             throw Abort(.custom(code: 401, reasonPhrase: "Auth Code Invalid"))
         }
@@ -143,8 +144,9 @@ struct AuthenticationService {
         try await handleAuthCodeExpired(authCode)
 
         // Soft delete all auth codes so that it cannot be used again to login
+        // Downside: this might cause problems if multiple devices are trying to login or register at the same time
         let userID = try user.requireID()
-        try await softDeleteAllAuthCodesForUser(id: userID)
+        try await softDeleteAllAuthCodes(id: userID)
 
         let token = generateBearerToken(id: userID)
         try await token.save(on: database)
@@ -156,8 +158,10 @@ struct AuthenticationService {
         let userEmail = user.email
         try await handleUserAccountAlreadyExistsWith(email: userEmail)
 
+        let codeType: AuthCodeType = .register
+
         guard
-            let authCode = try await getAuthCode(code, email: userEmail)
+            let authCode = try await getAuthCode(code, email: userEmail, codeType: codeType)
         else {
             throw Abort(.custom(code: 401, reasonPhrase: "Auth Code Invalid"))
         }
@@ -166,10 +170,11 @@ struct AuthenticationService {
 
         // Save user to generate `id`
         try await user.save(on: database)
+        let userID = try user.requireID()
 
         // Soft delete all auth codes to avoid register attempts with old auth codes
-        let userID = try user.requireID()
-        try await softDeleteAllAuthCodesForUser(id: userID)
+        // Downside: this might cause problems if multiple devices are trying to login or register at the same time
+        try await softDeleteAllRegisterAuthCodes(email: user.email)
 
         let token = generateBearerToken(id: userID)
         try await token.save(on: database)
@@ -180,14 +185,14 @@ struct AuthenticationService {
     private func isAuthCodeTheNewest(_ authCode: AuthenticationCodeModel) async throws -> Bool {
         let newerCodes =
             try await AuthenticationCodeModel
-                .query(on: database)
-                .filter(\.$expiresAt > authCode.expiresAt)
-                .all()
+            .query(on: database)
+            .filter(\.$expiresAt > authCode.expiresAt)
+            .all()
 
         return newerCodes.count == 0
     }
 
-    private func softDeleteAllAuthCodesForUser(id userID: UUID)
+    private func softDeleteAllAuthCodes(id userID: UUID)
         async throws
     {
         try await AuthenticationCodeModel
@@ -196,13 +201,26 @@ struct AuthenticationService {
             .delete()
     }
 
-    private func getAuthCode(_ code: Int, email: String) async throws -> AuthenticationCodeModel? {
+    private func softDeleteAllRegisterAuthCodes(email userEmail: String)
+        async throws
+    {
+        try await AuthenticationCodeModel
+            .query(on: database)
+            .filter(\.$email == userEmail)
+            .filter(\.$codeType == AuthCodeType.register)
+            .delete()
+    }
+
+    private func getAuthCode(_ code: Int, email: String, codeType: AuthCodeType) async throws
+        -> AuthenticationCodeModel?
+    {
         let code =
             try await AuthenticationCodeModel
-                .query(on: database)
-                .filter(\.$value == code)
-                .filter(\.$email == email)
-                .first()
+            .query(on: database)
+            .filter(\.$value == code)
+            .filter(\.$email == email)
+            .filter(\.$codeType == codeType)  // make sure the generated code was created for the right auth type
+            .first()
         return code
     }
 
@@ -239,7 +257,7 @@ struct AuthenticationService {
         // 1. Get user from db
         guard
             let user =
-            try await UserModel
+                try await UserModel
                 .query(on: database)
                 .filter(\.$username, .equal, basic.username)
                 .first()
@@ -261,7 +279,7 @@ struct AuthenticationService {
     func getBearerToken(_ token: String) async throws -> UserTokenModel {
         guard
             let userToken =
-            try await UserTokenModel
+                try await UserTokenModel
                 .query(on: database)
                 .filter(\.$value, .equal, token)
                 .first()
@@ -274,9 +292,9 @@ struct AuthenticationService {
     func removeOldBearerTokens(for userID: UUID) async throws {
         let tokens =
             try await UserTokenModel
-                .query(on: database)
-                .filter(\.$user.$id, .equal, userID)
-                .all()
+            .query(on: database)
+            .filter(\.$user.$id, .equal, userID)
+            .all()
 
         for token in tokens {
             try await token.delete(on: database)

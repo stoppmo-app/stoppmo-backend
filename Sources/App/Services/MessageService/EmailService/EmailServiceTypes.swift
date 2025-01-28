@@ -9,7 +9,6 @@ import Vapor
 struct FromEmailTemplateToSendZohoEmailPayloadParams {
     let fromAddress: String
     let toAddress: String
-    let renderer: ViewRenderer
     let authType: AuthCodeType
 }
 
@@ -92,40 +91,30 @@ struct RefreshZohoMailAccessTokenResponse: Content {
     let expiresIn: Int
 }
 
+struct SendEmailLeafTemplateContext: Encodable {
+    let subject: String
+    let authType: String
+    let codeArray: [Int]
+}
+
 enum EmailTemplate {
     case authCode(code: Int)
-
-    struct SendEmailLeafTemplateContext: Encodable {
-        let subject: String
-        let authType: String
-        let codeArray: [Int]
-    }
 
     func asSendEmailPayload(_ params: FromEmailTemplateToSendZohoEmailPayloadParams) async throws
         -> SendZohoMailEmailPayload
     {
         let fromAddress = params.fromAddress
         let toAddress = params.toAddress
-        let renderer = params.renderer
-        let authType = params.authType
+        let authType = params.authType.rawValue
 
         switch self {
         case let .authCode(code):
             let emailSubject = "StopPMO App | Two-Factor Authentication Code | \(code)"
-            let codeArray = String(code).compactMap(\.wholeNumberValue)
-
-            let sendEmailView: View = try await renderer.render(
-                "sendAuthEmail",
-                SendEmailLeafTemplateContext(
-                    subject: emailSubject, authType: authType.rawValue, codeArray: codeArray
-                )
-            ).get()
-
-            let sendEmailHTMLString = String(buffer: sendEmailView.data)
+            let content = "Welcome to StopPMO! Your \(authType) code is: <b>\(code)</b>"
 
             return .init(
                 fromAddress: fromAddress, toAddress: toAddress, subject: emailSubject,
-                content: sendEmailHTMLString
+                content: content
             )
         }
     }
