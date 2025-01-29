@@ -7,7 +7,7 @@ import Fluent
 import Vapor
 
 enum MessageService {
-    static func getEmail(_ service: EmailService) -> EmailService {
+    static func getEmail(_ service: ZohoMaillService) -> ZohoMaillService {
         service
     }
 }

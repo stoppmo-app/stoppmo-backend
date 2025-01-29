@@ -70,7 +70,7 @@ struct AuthenticationService {
         let senderType: EmailSenderType = .authentication
 
         // 1. Send email
-        let authCode = code ?? Int.random(in: 0..<100_000)
+        let authCode = code ?? Int.random(in: 0 ..< 100_000)
 
         let fromAddress = senderType.getSenderEmail()
         guard
@@ -110,10 +110,10 @@ struct AuthenticationService {
     private func handleUserAccountAlreadyExistsWith(email: String) async throws {
         let user =
             try await UserModel
-            .query(on: database)
-            .filter(\.$email == email)
-            .field(\.$id)
-            .first()
+                .query(on: database)
+                .filter(\.$email == email)
+                .field(\.$id)
+                .first()
 
         if user != nil {
             throw Abort(
@@ -185,9 +185,9 @@ struct AuthenticationService {
     private func isAuthCodeTheNewest(_ authCode: AuthenticationCodeModel) async throws -> Bool {
         let newerCodes =
             try await AuthenticationCodeModel
-            .query(on: database)
-            .filter(\.$expiresAt > authCode.expiresAt)
-            .all()
+                .query(on: database)
+                .filter(\.$expiresAt > authCode.expiresAt)
+                .all()
 
         return newerCodes.count == 0
     }
@@ -216,11 +216,11 @@ struct AuthenticationService {
     {
         let code =
             try await AuthenticationCodeModel
-            .query(on: database)
-            .filter(\.$value == code)
-            .filter(\.$email == email)
-            .filter(\.$codeType == codeType)  // make sure the generated code was created for the right auth type
-            .first()
+                .query(on: database)
+                .filter(\.$value == code)
+                .filter(\.$email == email)
+                .filter(\.$codeType == codeType) // make sure the generated code was created for the right auth type
+                .first()
         return code
     }
 
@@ -257,7 +257,7 @@ struct AuthenticationService {
         // 1. Get user from db
         guard
             let user =
-                try await UserModel
+            try await UserModel
                 .query(on: database)
                 .filter(\.$username, .equal, basic.username)
                 .first()
@@ -279,7 +279,7 @@ struct AuthenticationService {
     func getBearerToken(_ token: String) async throws -> UserTokenModel {
         guard
             let userToken =
-                try await UserTokenModel
+            try await UserTokenModel
                 .query(on: database)
                 .filter(\.$value, .equal, token)
                 .first()
@@ -292,9 +292,9 @@ struct AuthenticationService {
     func removeOldBearerTokens(for userID: UUID) async throws {
         let tokens =
             try await UserTokenModel
-            .query(on: database)
-            .filter(\.$user.$id, .equal, userID)
-            .all()
+                .query(on: database)
+                .filter(\.$user.$id, .equal, userID)
+                .all()
 
         for token in tokens {
             try await token.delete(on: database)
