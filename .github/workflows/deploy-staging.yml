@@ -2,7 +2,6 @@ name: Fly Deploy to Staging
 on:
   push:
     branches:
-      - cleanup-code-authentication # Remove this afterwards, just for testing purposes
       - release/staging
 
 env:
