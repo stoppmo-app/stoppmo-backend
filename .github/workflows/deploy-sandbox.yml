@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - develop
+      - cleanup-code-authentication # Remove this afterwards, just for testing purposes
 env:
   FLY_API_TOKEN: ${{ secrets.FLY_ORG_STOPPMO_API_TOKEN }}
   FLY_REGION: bos

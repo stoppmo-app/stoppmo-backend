@@ -2,6 +2,7 @@ name: Fly Deploy to Production
 on:
   push:
     branches:
+      - cleanup-code-authentication # Remove this afterwards, just for testing purposes
       - release/production
 
 env:
