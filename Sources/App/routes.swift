@@ -12,8 +12,7 @@ func routes(_ app: Application) throws {
     }
 
     app.get("hello") { req async -> String in
-        req.logger.info("In Hello Route")
-        return "Hello there world!"
+        return "Hello Review App Test!"
     }
 
     // register all controllers
