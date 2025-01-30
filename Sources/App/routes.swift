@@ -11,8 +11,9 @@ func routes(_ app: Application) throws {
         try await req.view.render("index", ["title": "Hello Test Review App!"])
     }
 
-    app.get("hello") { _ async -> String in
-        "Hello there world!"
+    app.get("hello") { req async -> String in
+        req.logger.info("In Hello Route")
+        return "Hello there world!"
     }
 
     // register all controllers
