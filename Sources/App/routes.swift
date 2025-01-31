@@ -7,10 +7,6 @@ import Fluent
 import Vapor
 
 func routes(_ app: Application) throws {
-    app.get { req async throws in
-        try await req.view.render("index", ["title": "Hello Test Review App!"])
-    }
-
     app.get("hello") { req async -> String in
         return "Hello Review App Test!"
     }

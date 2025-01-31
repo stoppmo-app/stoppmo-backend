@@ -14,14 +14,13 @@ jobs:
   deploy:
     name: Deploy app
     runs-on: ubuntu-latest
-    concurrency: deploy-group    # optional: ensure only one action runs at a time
     steps:
       - name: Checkout Github Repo
         uses: actions/checkout@v4
       - name: Set App Secrets
         uses: superfly/flyctl-actions@1.5
         with:
-          args: 'secrets set ZOHO_CLIENT_ID=${{ secrets.ZOHO_CLIENT_ID }} ZOHO_CLIENT_SECRET=${{ secrets.ZOHO_CLIENT_SECRET }} ZOHO_REFRESH_TOKEN=${{ secrets.ZOHO_REFRESH_TOKEN}} ZOHO_MAIL_AUTH_SENDER_ID=${{ secrets.ZOHO_MAIL_AUTH_SENDER_ID}} --config ${{ env.FLY_CONFIG_PATH }}'
+          args: 'secrets set DATABASE_URL=${{ secrets.STAGING_DATABASE_URL }} ZOHO_CLIENT_ID=${{ secrets.ZOHO_CLIENT_ID }} ZOHO_CLIENT_SECRET=${{ secrets.ZOHO_CLIENT_SECRET }} ZOHO_REFRESH_TOKEN=${{ secrets.ZOHO_REFRESH_TOKEN}} ZOHO_MAIL_AUTH_SENDER_ID=${{ secrets.ZOHO_MAIL_AUTH_SENDER_ID}} --config ${{ env.FLY_CONFIG_PATH }}'
 
       - name: Deploy App
         uses: superfly/flyctl-actions@1.5

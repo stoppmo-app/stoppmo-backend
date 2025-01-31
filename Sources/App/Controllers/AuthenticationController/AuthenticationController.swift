@@ -7,6 +7,7 @@ import Vapor
 
 struct AuthenticationController: RouteCollection {
     func boot(routes: RoutesBuilder) throws {
+        print("Registering Authentication Routes")
         let auth = routes.grouped("auth")
         auth.group(
             UserBasicAuthenticator(),
