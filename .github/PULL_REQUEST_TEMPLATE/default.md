@@ -2,19 +2,19 @@
 
 <!-- Reason for creating this PR -->
 
-# Tech Details List
+# Tech Details List:
 
 <!-- Bullet pointed list about the changes made -->
 
-**Tasks:**
+## Tasks:
 
 <!-- Checkboxable tasks to mark as completed once done (Use nesting for bigger PRS) -->
 
-**Un-important tasks:**
+## Un-Important Tasks:
 
 <!-- Tasks that doesn't have to be done. And can be done in a PR down the road. Or during code freeze -->
 
-**Links:**
+## Links:
 
 <!-- Any notable link here that can aid in the exploration review of the PR, as well as context -->
 
@@ -24,7 +24,7 @@
 
 <!-- Add testing instructions, output images / videos / text -->
 
-**Steps:**
+## Steps:
 1. Run required commands to test all the code modified by this PR
 ```bash
 # unit tests
@@ -33,7 +33,7 @@
 ```
 2. Further testing can be done by following the notes in `TESTING-QA`
 
-**Output:**
+## Output:
 
 <!-- Any output content should be shared here -->
 

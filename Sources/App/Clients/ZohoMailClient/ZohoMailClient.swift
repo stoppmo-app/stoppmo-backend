@@ -1,4 +1,4 @@
-// EmailService.swift
+// ZohoMailClient.swift
 // Copyright (c) 2025 StopPMO
 // All source code and related assets are the property of StopPMO.
 // All rights reserved.
@@ -6,7 +6,7 @@
 import Fluent
 import Vapor
 
-struct EmailService {
+struct ZohoMailClient {
     let database: Database
     let client: Client
     let logger: Logger

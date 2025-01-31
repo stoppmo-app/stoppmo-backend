@@ -64,9 +64,8 @@ struct AuthenticationService {
             try await handleUserAccountAlreadyExistsWith(email: email)
         }
 
-        let emailService = MessageService.getEmail(
-            .init(database: database, client: client, logger: logger)
-        )
+        let emailClient = ZohoMailClient(database: database, client: client, logger: logger)
+
         let senderType: EmailSenderType = .authentication
 
         // 1. Send email
@@ -91,14 +90,14 @@ struct AuthenticationService {
             )
         )
 
-        let sendEmailResponse = try await emailService.sendEmail(
+        let sendEmailResponse = try await emailClient.sendEmail(
             senderType: senderType,
             payload: sendEmailPayload,
             messageType: messageType
         )
 
         // 2. Save email
-        let savedEmail = try await emailService.saveEmail(sendEmailResponse.emailMessage)
+        let savedEmail = try await emailClient.saveEmail(sendEmailResponse.emailMessage)
 
         // 3. Return saved email, code and response from sending email using Zoho Mail API
         return .init(

@@ -10,6 +10,7 @@ struct EmailRateLimitService {
     let database: Database
     let logger: Logger
 
+    // test
     struct IntervalAndDailyRateLimit: Content {
         let intervalRateLimit: TimeInterval
         let dailyRateLimit: Int
@@ -75,7 +76,7 @@ struct EmailRateLimitService {
     ) async throws -> GenericRateLimitResponse {
         guard
             let latestSentAt =
-                try await EmailMessageModel
+            try await EmailMessageModel
                 .query(on: database)
                 .filter(\.$sentToEmail == email)
                 .sort(\.$sentAt, .descending)
