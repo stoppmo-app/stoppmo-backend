@@ -11,11 +11,10 @@ import Vapor
 // configures your application
 public func configure(_ app: Application) async throws {
     // uncomment to serve files from /Public folder
-    // app.middleware.use(FileMiddleware(publicDirectory: app.directory.publicDirectory))
+    app.middleware.use(FileMiddleware(publicDirectory: app.directory.publicDirectory))
 
     // In production environment, it will use DATABASE_URL
     if let databaseURL = Environment.get("DATABASE_URL") {
-        app.logger.info("Database URL: \(databaseURL)")
         try app.databases.use(.postgres(url: databaseURL), as: .psql)
     } else {
         try app.databases.use(
@@ -33,15 +32,35 @@ public func configure(_ app: Application) async throws {
         )
     }
 
-    // use leaf templates for views
+    // Leaf Templates
     app.views.use(.leaf)
 
-    // run all migrations
-    app.migrations.addGroup(UserMigrations())
-    app.migrations.addGroup(BadgeMigrations())
-    app.migrations.addGroup(UserBadgeMigrations())
+    // Migrations
+    app.migrations.add(CreateUserModel())
+    app.migrations.add(UserModelWithPassword1())
+    app.migrations.add(UserModelWithDeletedAt1())
+    app.migrations.add(UserModelWithUniqueFields1())
+    app.migrations.add(CreateUserTokenModel())
+    app.migrations.add(UserTokenModelWithTimestamps1())
+    app.migrations.add(UserTokenModelWithExpiresAtField1())
+    app.migrations.add(UserTokenModelWithExpiresAtAsTimestampZ())
+    app.migrations.add(CreateBadgeModel())
+    app.migrations.add(BadgeModelWithDeletedAt1())
+    app.migrations.add(BadgeModelWithUniqueUnlockAfterDaysField1())
+    app.migrations.add(SeedBadgesModel())
+    app.migrations.add(CreateUserBadgeModel())
+    app.migrations.add(UserBadgeModelWithParentIDReferences1())
+    app.migrations.add(UserBadgeModelWithDeletedAt1())
+    app.migrations.add(CreateEmailMessageModel())
+    app.migrations.add(EmailMessageModelWithSentToAndSentFromEmail())
+    app.migrations.add(EmailMessageModelWithEmailMessageTypeEnum())
+    app.migrations.add(EmailMessageModelWithSubjectAndContent())
+    app.migrations.add(EmailMessageModelWithTimestampzSentAt())
+    app.migrations.add(CreateAuthenticationCodeModel())
+    app.migrations.add(AuthenticationCodeModelTimestampZExpiresAt())
+    app.migrations.add(AuthenticationCodeModelWithEmailMessageIDAndAuthCodeTypeFields())
+    app.migrations.add(CreateKeyValuePairModel())
 
-    // Automatically run migrations on database
     try await app.autoMigrate()
 
     // register routes
