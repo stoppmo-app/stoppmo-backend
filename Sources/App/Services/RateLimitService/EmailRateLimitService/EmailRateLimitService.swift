@@ -21,88 +21,70 @@ struct EmailRateLimitService {
         rateLimit: IntervalAndDailyRateLimit,
         messageTypes: [EmailMessageType],
         intervalRateLimitReachedMessage: EmailIntervalRateLimitMessage,
-        dailyRateLimitReachedMessage _: EmailDailyRateLimitMessage
-    ) async throws -> GenericRateLimitResponse {
+        dailyRateLimitReachedMessage: EmailDailyRateLimitMessage
+    ) async throws {
         let intervalRateLimit = rateLimit.intervalRateLimit
         let dailyRateLimit: Int = rateLimit.dailyRateLimit
 
-        let dailyRateLimitResponse = try await emailsSentDailyRateLimit(
-            email: email, messageTypes: messageTypes, limit: dailyRateLimit,
-            message: intervalRateLimitReachedMessage.getMessage()
-        )
-        if dailyRateLimitResponse.limitReached == true {
-            return dailyRateLimitResponse
+        let dailyLimitMessage = dailyRateLimitReachedMessage.getMessage()
+        let intervalLimitMessage = intervalRateLimitReachedMessage.getMessage()
+
+        var finalErrorMessage: String = ""
+
+        if try await emailsSentDailyRateLimit(
+            email: email, messageTypes: messageTypes, limit: dailyRateLimit
+        ) {
+            finalErrorMessage.append(dailyLimitMessage)
         }
 
-        let intervalRateLimitResponse = try await emailsSentIntervalLimit(
-            email: email, limit: intervalRateLimit,
-            message: intervalRateLimitReachedMessage.getMessage()
-        )
-        if intervalRateLimitResponse.limitReached == true {
-            return intervalRateLimitResponse
+        if try await emailsSentIntervalLimit(
+            email: email, limit: intervalRateLimit
+        ) {
+            finalErrorMessage.append(intervalLimitMessage)
         }
-
-        return .init(limitReached: false)
+        if finalErrorMessage != "" {
+            throw Abort(.custom(code: 429, reasonPhrase: finalErrorMessage))
+        }
     }
 
     private func emailsSentDailyRateLimit(
         email: String,
         messageTypes: [EmailMessageType],
-        limit: Int,
-        message: String
-    ) async throws -> GenericRateLimitResponse {
-        if try await EmailMessageModel
+        limit: Int
+    ) async throws -> Bool {
+        return try await EmailMessageModel
             .query(on: database)
             .filter(\.$sentToEmail == email)
             .filter(\.$messageType ~~ messageTypes)
             .filter(\.$sentAt >= Date().addingTimeInterval(-86400))
             .filter(\.$sentAt <= Date())
             .count() >= limit
-        {
-            return .init(
-                limitReached: true,
-                message: message
-            )
-        }
-        return .init(
-            limitReached: false
-        )
     }
 
     private func emailsSentIntervalLimit(
         email: String,
-        limit: TimeInterval,
-        message: String
-    ) async throws -> GenericRateLimitResponse {
+        limit: TimeInterval
+    ) async throws -> Bool {
         guard
             let latestSentAt =
-            try await EmailMessageModel
+                try await EmailMessageModel
                 .query(on: database)
                 .filter(\.$sentToEmail == email)
                 .sort(\.$sentAt, .descending)
                 .first()
         else {
             // User sent no emails, meaning they aren't rate limited
-            return .init(limitReached: false)
+            return false
         }
 
-        let rateLimited = latestSentAt.sentAt.addingTimeInterval(limit) >= Date()
-        if rateLimited == true {
-            return .init(
-                limitReached: rateLimited,
-                message: message
-            )
-        }
-        return .init(limitReached: false)
+        return latestSentAt.sentAt.addingTimeInterval(limit) >= Date()
     }
 
-    public func authEmailsSent(email: String, messageType: EmailMessageType) async throws
-        -> GenericRateLimitResponse
-    {
+    public func authEmailsSent(email: String, messageType: EmailMessageType) async throws {
         let intervalRateLimit = 100
         let dailyRateLimit = 20
 
-        let rateLimitResponse = try await emailsSent(
+        try await emailsSent(
             email: email,
             rateLimit: .init(
                 intervalRateLimit: TimeInterval(intervalRateLimit), dailyRateLimit: dailyRateLimit
@@ -117,6 +99,5 @@ struct EmailRateLimitService {
                 limit: dailyRateLimit
             )
         )
-        return rateLimitResponse
     }
 }

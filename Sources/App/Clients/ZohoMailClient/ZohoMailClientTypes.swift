@@ -6,38 +6,39 @@
 import Fluent
 import Vapor
 
-struct FromEmailTemplateToSendZohoEmailPayloadParams {
-    let fromAddress: String
-    let toAddress: String
-    let authType: AuthCodeType
+struct FromEmailTemplateToSendEmailPayload {
 }
 
-struct SendZohoMailEmailPayload: Content {
+struct SendEmailPayload: Content {
     let fromAddress: String
     let toAddress: String
     let subject: String
     let content: String
 
     static func fromTemplate(
-        template: EmailTemplate, emailParams: FromEmailTemplateToSendZohoEmailPayloadParams
-    ) async throws -> SendZohoMailEmailPayload {
-        try await template.asSendEmailPayload(emailParams)
+        template: EmailTemplate,
+        fromAddress: String,
+        toAddress: String,
+        authType: AuthCodeType
+    ) async throws -> SendEmailPayload {
+        try await template.asSendEmailPayload(
+            fromAddress: fromAddress, toAddress: toAddress, authType: authType)
     }
 }
 
-struct SendZohoMailEmailResponse: Content {
+struct SendEmailResponse: Content {
     let status: ZohoMailResponseStatus
-    let data: SendZohoMailEmailResponseData
+    let data: SendEmailResponseData
 }
 
-struct EmailMessageModelWithSendZohoMailEmailResponse: Content {
+struct EmailWithSendEmailResponse: Content {
     let emailMessage: EmailMessageModel
-    let sentEmailZohoMailResponse: SendZohoMailEmailResponse
+    let sentZohoMailResponse: SendEmailResponse
 }
 
-struct SendZohoMailEmailInvalidTokenResponse: Content {
+struct SendEmailInvalidTokenResponse: Content {
     let status: ZohoMailResponseStatus
-    let data: SendZohoMailEmailInvalidTokenResponseData
+    let data: SendEmailInvalidTokenResponseData
 }
 
 struct ZohoMailResponseStatus: Content {
@@ -45,7 +46,7 @@ struct ZohoMailResponseStatus: Content {
     let description: String
 }
 
-struct SendZohoMailEmailResponseData: Content {
+struct SendEmailResponseData: Content {
     let subject: String
     let messageId: String
     let fromAddress: String
@@ -54,7 +55,7 @@ struct SendZohoMailEmailResponseData: Content {
     let content: String
 }
 
-struct SendZohoMailEmailInvalidTokenResponseData: Content {
+struct SendEmailInvalidTokenResponseData: Content {
     let errorCode: String
     let moreInfo: String?
 }
@@ -91,22 +92,16 @@ struct RefreshZohoMailAccessTokenResponse: Content {
     let expiresIn: Int
 }
 
-struct SendEmailLeafTemplateContext: Encodable {
-    let subject: String
-    let authType: String
-    let codeArray: [Int]
-}
-
 enum EmailTemplate {
     case authCode(code: Int)
 
-    func asSendEmailPayload(_ params: FromEmailTemplateToSendZohoEmailPayloadParams) async throws
-        -> SendZohoMailEmailPayload
+    func asSendEmailPayload(
+        fromAddress: String,
+        toAddress: String,
+        authType: AuthCodeType
+    ) async throws
+        -> SendEmailPayload
     {
-        let fromAddress = params.fromAddress
-        let toAddress = params.toAddress
-        let authType = params.authType.rawValue
-
         switch self {
         case let .authCode(code):
             let emailSubject = "StopPMO App | Two-Factor Authentication Code | \(code)"

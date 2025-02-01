@@ -6,23 +6,41 @@
 import Fluent
 import Vapor
 
+/// Service that provides all authentication logic as methods (login, account creation and registration, logout and two-factor authentication).
 struct AuthenticationService {
     let database: Database
     let client: Client
     let logger: Logger
 
+    /// Send login code email to user email and save sent email to database.
+    /// - Parameter email: User email to send code to.
+    /// - Throws: Throws an error if user reached email sent rate limit or email did not send successfully.
+    /// - Returns: A `SendAuthCodeResponse` containing data like the email sent, auth code used and response from email sent using email client.
     public func sendLoginCode(email: String) async throws
         -> SendAuthCodeResponse
     {
-        try await sendAuthCode(email: email, messageType: .authLogin)
+        try await sendAuthCode(email: email, authCodeType: .login)
     }
 
+    /// Send register code email to user email and save sent email to database.
+    /// - Parameter email: User email to send code to.
+    /// - Throws: Throws an error if account with email already exists, user reached email sent rate limit or email did not send successfully.
+    /// - Returns: A `SendAuthCodeResponse` containing data like the email sent, auth code used and response from email sent using email client.
     public func sendRegisterCode(email: String) async throws
         -> SendAuthCodeResponse
     {
-        try await sendAuthCode(email: email, messageType: .authCreateAccount)
+        try await sendAuthCode(email: email, authCodeType: .register)
     }
 
+    /// Save authentication code to database.
+    /// - Parameters:
+    ///   - code: Authentication code sent in email.
+    ///   - userEmail: Email the code was sent to.
+    ///   - sentEmailMessageID: Email message model ID.
+    ///   - authCodeType: Code type (for register or login).
+    ///   - userID: ID of user this code was sent to.
+    ///
+    /// - Throws: Throws an error if code fails to save to database.
     public func saveAuthCode(
         code: Int, userEmail: String, sentEmailMessageID: UUID, authCodeType: AuthCodeType,
         userID: UUID? = nil
@@ -36,111 +54,91 @@ struct AuthenticationService {
         try await authCode.save(on: database)
     }
 
+    /// Send authentication code email to user email and save email to database.
+    /// - Parameters:
+    ///   - email: User email to send email to.
+    ///   - authCodeType: The type of authentication the code will be used for (register or login).
+    ///   - code: The code to send inside the email.
+    ///
+    /// - Throws:
+    /// - Throws: Throws an error if `authCodeType` is `register` and account with email already exists, user reached email sent rate limit or email did not send successfully.
+    /// - Returns: A `SendAuthCodeResponse` containing data like the email sent, auth code used and response from email sent using email client.
     private func sendAuthCode(
-        email: String, messageType: EmailMessageType, code: Int? = nil
+        email: String, authCodeType: AuthCodeType, code: Int? = nil
     )
         async throws
         -> SendAuthCodeResponse
     {
-        // Rate limit logic
         let emailRateLimitService = RateLimitService.emailsService(
             .init(database: database, logger: logger)
         )
-        let rateLimitResponse = try await emailRateLimitService.authEmailsSent(
-            email: email, messageType: messageType
+        let emailMessageType = try authCodeType.toEmailMessageType(logger: logger)
+        try await emailRateLimitService.authEmailsSent(
+            email: email, messageType: emailMessageType
         )
 
-        if rateLimitResponse.limitReached == true {
-            throw Abort(
-                .custom(
-                    code: 429,
-                    reasonPhrase: rateLimitResponse.message ?? "Auth Emails Limit Reached"
-                )
-            )
-        }
-
-        // Make sure account doesn't already exist
-        if messageType == .authCreateAccount {
-            try await handleUserAccountAlreadyExistsWith(email: email)
+        if authCodeType == .register {
+            try await validateUniqueEmail(email: email)
         }
 
         let emailClient = ZohoMailClient(database: database, client: client, logger: logger)
-
         let senderType: EmailSenderType = .authentication
-
-        // 1. Send email
         let authCode = code ?? Int.random(in: 0..<100_000)
 
         let fromAddress = senderType.getSenderEmail()
-        guard
-            let authType = messageType.toAuthType()
-        else {
-            logger.error(
-                "Could not convert message type \(messageType.rawValue) to 'AuthCodeType' when sending auth code. This should never happen."
-            )
-            throw Abort(.internalServerError)
-        }
-
-        let sendEmailPayload = try await SendZohoMailEmailPayload.fromTemplate(
+        let sendEmailPayload = try await SendEmailPayload.fromTemplate(
             template: .authCode(code: authCode),
-            emailParams: .init(
-                fromAddress: fromAddress,
-                toAddress: email,
-                authType: authType
-            )
+            fromAddress: fromAddress,
+            toAddress: email,
+            authType: authCodeType
         )
 
         let sendEmailResponse = try await emailClient.sendEmail(
             senderType: senderType,
             payload: sendEmailPayload,
-            messageType: messageType
+            messageType: emailMessageType
         )
-
-        // 2. Save email
         let savedEmail = try await emailClient.saveEmail(sendEmailResponse.emailMessage)
-
-        // 3. Return saved email, code and response from sending email using Zoho Mail API
         return .init(
             savedEmail: savedEmail, authCode: authCode,
-            sentEmailZohoMailResponse: sendEmailResponse.sentEmailZohoMailResponse
+            sentZohoMailEmailResponse: sendEmailResponse.sentZohoMailResponse
         )
     }
 
-    private func handleUserAccountAlreadyExistsWith(email: String) async throws {
-        let user =
-            try await UserModel
+    /// Validate no user exists with a specific email.
+    /// - Parameter email: Email to validate.
+    /// - Throws: An error if user exists with email.
+    private func validateUniqueEmail(email: String) async throws {
+        if try await UserModel
             .query(on: database)
             .filter(\.$email == email)
-            .field(\.$id)
-            .first()
+            .count() > 0
+        {
 
-        if user != nil {
             throw Abort(
                 .custom(
-                    code: 409, reasonPhrase: "User already exists with email '\(email)'"
+                    code: 409, reasonPhrase: "User already exists with email '\(email)'."
                 )
             )
         }
     }
 
-    private func handleAuthCodeExpired(_ authCode: AuthenticationCodeModel) async throws {
+    /// A description
+    /// - Parameter authCode:
+    /// - Throws:
+    private func validateAuthCodeNotExpired(_ authCode: AuthenticationCodeModel) async throws {
         let codeExpired = try await isAuthCodeExpired(authCode)
         let newestCode = try await isAuthCodeTheNewest(authCode)
 
         if codeExpired == true || newestCode == false {
-            throw Abort(.custom(code: 401, reasonPhrase: "Auth Code Expired"))
+            throw Abort(.custom(code: 401, reasonPhrase: "Authentication code expired."))
         }
     }
 
     func login(user: UserModel, authCode code: Int) async throws -> BearerTokenWithUserDTO {
         let codeType: AuthCodeType = .login
-        guard
-            let authCode = try await getAuthCode(code, email: user.email, codeType: codeType)
-        else {
-            throw Abort(.custom(code: 401, reasonPhrase: "Auth Code Invalid"))
-        }
-
-        try await handleAuthCodeExpired(authCode)
+        try await validateAuthCode(
+            code, email: user.email, codeType: codeType)
 
         // Soft delete all auth codes so that it cannot be used again to login
         // Downside: this might cause problems if multiple devices are trying to login or register at the same time
@@ -155,17 +153,12 @@ struct AuthenticationService {
 
     func register(user: UserModel, authCode code: Int) async throws -> BearerTokenWithUserDTO {
         let userEmail = user.email
-        try await handleUserAccountAlreadyExistsWith(email: userEmail)
+        try await validateUniqueEmail(email: userEmail)
 
         let codeType: AuthCodeType = .register
 
-        guard
-            let authCode = try await getAuthCode(code, email: userEmail, codeType: codeType)
-        else {
-            throw Abort(.custom(code: 401, reasonPhrase: "Auth Code Invalid"))
-        }
-
-        try await handleAuthCodeExpired(authCode)
+        try await validateAuthCode(
+            code, email: userEmail, codeType: codeType)
 
         // Save user to generate `id`
         try await user.save(on: database)
@@ -210,16 +203,27 @@ struct AuthenticationService {
             .delete()
     }
 
-    private func getAuthCode(_ code: Int, email: String, codeType: AuthCodeType) async throws
-        -> AuthenticationCodeModel?
+    private func validateAuthCode(_ code: Int, email: String, codeType: AuthCodeType)
+        async throws
     {
-        let code =
-            try await AuthenticationCodeModel
-            .query(on: database)
-            .filter(\.$value == code)
-            .filter(\.$email == email)
-            .filter(\.$codeType == codeType)  // make sure the generated code was created for the right auth type
-            .first()
+        let authCode = try await getAuthCode(code, email: email, codeType: codeType)
+        try await validateAuthCodeNotExpired(authCode)
+    }
+
+    private func getAuthCode(_ code: Int, email: String, codeType: AuthCodeType)
+        async throws -> AuthenticationCodeModel
+    {
+        guard
+            let code =
+                try await AuthenticationCodeModel
+                .query(on: database)
+                .filter(\.$value == code)
+                .filter(\.$email == email)
+                .filter(\.$codeType == codeType)  // make sure the generated code was created for the right auth type
+                .first()
+        else {
+            throw Abort(.custom(code: 401, reasonPhrase: "Authentication code invalid."))
+        }
         return code
     }
 

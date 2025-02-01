@@ -13,7 +13,7 @@ enum EmailDailyRateLimitMessage: EmailRateLimitMessage {
     case authCreateAccount(limit: Int)
     case authLogin(limit: Int)
 
-    mutating func getMessage() -> String {
+    func getMessage() -> String {
         switch self {
         case let .authCreateAccount(limit):
             "Reached limit of \(limit) account creation attempts for today. Try again in 24 hours."

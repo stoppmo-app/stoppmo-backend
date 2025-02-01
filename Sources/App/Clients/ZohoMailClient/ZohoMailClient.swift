@@ -13,10 +13,10 @@ struct ZohoMailClient {
     private let zohoMailAPIBaseUrl = "https://mail.zoho.com/api"
 
     public func sendEmail(
-        senderType: EmailSenderType, payload: SendZohoMailEmailPayload,
+        senderType: EmailSenderType, payload: SendEmailPayload,
         messageType: EmailMessageType, maxRetries: Int = 5,
         token zohoAccessToken: String? = nil
-    ) async throws -> EmailMessageModelWithSendZohoMailEmailResponse {
+    ) async throws -> EmailWithSendEmailResponse {
         let zohoResponse = try await sendZohoEmail(
             senderType: senderType, payload: payload, maxRetries: maxRetries, token: zohoAccessToken
         )
@@ -24,10 +24,11 @@ struct ZohoMailClient {
             payload: payload, messageType: messageType
         )
 
-        return .init(emailMessage: emailMessageModel, sentEmailZohoMailResponse: zohoResponse)
+        return .init(emailMessage: emailMessageModel, sentZohoMailResponse: zohoResponse)
     }
 
-    public func saveEmail(_ emailMessageModel: EmailMessageModel) async throws -> EmailMessageModel {
+    public func saveEmail(_ emailMessageModel: EmailMessageModel) async throws -> EmailMessageModel
+    {
         do {
             try await emailMessageModel.save(on: database)
         } catch {
@@ -40,7 +41,7 @@ struct ZohoMailClient {
     }
 
     private func getEmailMessageModelFromEmailSent(
-        payload: SendZohoMailEmailPayload, messageType: EmailMessageType
+        payload: SendEmailPayload, messageType: EmailMessageType
     ) async throws -> EmailMessageModel {
         let sentToEmail = payload.toAddress
         let sentFromEmail = payload.fromAddress
@@ -55,19 +56,19 @@ struct ZohoMailClient {
     private func getUserIDFromEmail(_ email: String) async throws -> UUID? {
         let user =
             try await UserModel
-                .query(on: database)
-                .filter(\.$email, .equal, email)
-                .field(\.$id)
-                .first()
+            .query(on: database)
+            .filter(\.$email, .equal, email)
+            .field(\.$id)
+            .first()
         let id = try? user?.requireID()
         return id
     }
 
     private func sendZohoEmail(
-        senderType: EmailSenderType, payload: SendZohoMailEmailPayload, maxRetries: Int = 5,
+        senderType: EmailSenderType, payload: SendEmailPayload, maxRetries: Int = 5,
         token zohoAccessToken: String? = nil
     )
-        async throws -> SendZohoMailEmailResponse
+        async throws -> SendEmailResponse
     {
         var refreshedToken = false
 
@@ -104,7 +105,7 @@ struct ZohoMailClient {
         }
 
         do {
-            let responseBodyJSON = try response.content.decode(SendZohoMailEmailResponse.self)
+            let responseBodyJSON = try response.content.decode(SendEmailResponse.self)
 
             try handleZohoMailEmailSentSuccess(
                 responseBodyJSON, fromAddress: fromAddress, toAddress: toAddress
@@ -125,11 +126,11 @@ struct ZohoMailClient {
     }
 
     private func handleZohoMailEmailSentInvalidToken(
-        response: ClientResponse, senderType: EmailSenderType, payload: SendZohoMailEmailPayload,
+        response: ClientResponse, senderType: EmailSenderType, payload: SendEmailPayload,
         maxRetries: Int
-    ) async throws -> SendZohoMailEmailResponse {
+    ) async throws -> SendEmailResponse {
         _ = try response.content.decode(
-            SendZohoMailEmailInvalidTokenResponse.self
+            SendEmailInvalidTokenResponse.self
         )
         if maxRetries == 0 {
             logger.error(
@@ -144,7 +145,7 @@ struct ZohoMailClient {
     }
 
     private func handleZohoMailEmailSentSuccess(
-        _ responseBodyJSON: SendZohoMailEmailResponse, fromAddress: String, toAddress: String
+        _ responseBodyJSON: SendEmailResponse, fromAddress: String, toAddress: String
     ) throws {
         let success =
             responseBodyJSON.status.code == 200 && responseBodyJSON.status.description == "success"
@@ -159,10 +160,10 @@ struct ZohoMailClient {
     private func getZohoAccessToken() async throws -> String? {
         guard
             let pair =
-            try await KeyValuePairModel
+                try await KeyValuePairModel
                 .query(on: database)
                 .filter(\.$pairType == .zohoAccessToken)
-                .sort(\.$createdAt, .descending) // get latest
+                .sort(\.$createdAt, .descending)  // get latest
                 .field(\.$value)
                 .first()
         else {

@@ -8,7 +8,7 @@ import Vapor
 enum EmailMessageType: String, Codable {
     case authLogin, authCreateAccount
 
-    func toAuthType() -> AuthCodeType? {
+    func toAuthType() throws -> AuthCodeType? {
         switch self {
         case .authLogin:
             .login
@@ -17,6 +17,9 @@ enum EmailMessageType: String, Codable {
         }
         // Comment this in once there are more message type cases added
         // default:
-        //     return nil
+        //     logger.error(
+        //         "Could not convert message type \(self.rawValue) to 'AuthCodeType' when sending auth code. This should never happen."
+        //     )
+        //     throw Abort(.internalServerError)
     }
 }

@@ -30,7 +30,7 @@ struct AuthenticationController: RouteCollection {
     /// Send register code to user email, saving the code for code validation when registering and saving email for emails sent rate limit logic in future requests.
     /// - Parameter req: The request object.
     /// - Throws: Throws an error if user account with email passed in payload already exists, emails sent rate limit reached, email did not send, email did not save or auth code did not save.
-    /// - Returns: `HTTPStatus` of `.ok` on success.
+    /// - Returns: A `HTTPStatus` of `.ok` on success.
     @Sendable
     func sendRegisterCode(req: Request) async throws -> HTTPStatus {
         let authService = AuthenticationService(
@@ -73,7 +73,7 @@ struct AuthenticationController: RouteCollection {
     /// Send login code to user email, saving the code for code validation when logging in and saving email for emails sent rate limit logic in future requests.
     /// - Parameter req: The request object.
     /// - Throws: Throws an error if emails sent rate limit reached, email did not send, email did not save or auth code did not save.
-    /// - Returns: `HTTPStatus` of `.ok` on success.
+    /// - Returns: A `HTTPStatus` of `.ok` on success.
     @Sendable
     func sendLoginCode(req: Request) async throws -> HTTPStatus {
         let authService = AuthenticationService(

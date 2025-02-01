@@ -38,7 +38,7 @@ struct UserBasicAuthenticator: AsyncBasicAuthenticator {
 struct SendAuthCodeResponse: Content {
     let savedEmail: EmailMessageModel
     let authCode: Int
-    let sentEmailZohoMailResponse: SendZohoMailEmailResponse
+    let sentZohoMailEmailResponse: SendEmailResponse
 }
 
 struct RegisterAndLoginQueryParameters: Content, Validatable {
