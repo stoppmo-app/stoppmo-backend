@@ -7,7 +7,6 @@ import Vapor
 
 struct AuthenticationController: RouteCollection {
     func boot(routes: RoutesBuilder) throws {
-        print("Registering Authentication Routes")
         let auth = routes.grouped("auth")
         auth.group(
             UserBasicAuthenticator(),
@@ -52,11 +51,11 @@ struct AuthenticationController: RouteCollection {
 
         let userID = try user.requireID()
 
-        let code = sendLoginCodeResponse.authCode
+        let authCode = sendLoginCodeResponse.authCode
         let sentEmailMessageID = try sendLoginCodeResponse.savedEmail.requireID()
 
         try await authService.saveAuthCode(
-            code: code, userEmail: userEmail, sentEmailMessageID: sentEmailMessageID,
+            code: authCode, userEmail: userEmail, sentEmailMessageID: sentEmailMessageID,
             authCodeType: .login, userID: userID
         )
 
@@ -74,11 +73,11 @@ struct AuthenticationController: RouteCollection {
             email: userEmail
         )
 
-        let code = sendLoginCodeResponse.authCode
+        let authCode = sendLoginCodeResponse.authCode
         let sentEmailMessageID = try sendLoginCodeResponse.savedEmail.requireID()
 
         try await authService.saveAuthCode(
-            code: code, userEmail: userEmail, sentEmailMessageID: sentEmailMessageID,
+            code: authCode, userEmail: userEmail, sentEmailMessageID: sentEmailMessageID,
             authCodeType: .register
         )
 
@@ -105,11 +104,9 @@ struct AuthenticationController: RouteCollection {
             database: req.db, client: req.client, logger: req.logger
         )
 
-        guard
-            let userID = try req.auth.require(UserModel.self).id
-        else {
-            return .badRequest
-        }
+        let user = try req.auth.require(UserModel.self)
+        let userID = try user.requireID()
+
         try await authService.logout(user: userID, req: req)
         return .ok
     }
