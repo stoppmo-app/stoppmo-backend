@@ -20,8 +20,8 @@ struct SendEmailPayload: Content {
         fromAddress: String,
         toAddress: String,
         authType: AuthCodeType
-    ) async throws -> SendEmailPayload {
-        try await template.asSendEmailPayload(
+    ) -> SendEmailPayload {
+        template.asSendEmailPayload(
             fromAddress: fromAddress, toAddress: toAddress, authType: authType)
     }
 }
@@ -99,7 +99,7 @@ enum EmailTemplate {
         fromAddress: String,
         toAddress: String,
         authType: AuthCodeType
-    ) async throws
+    )
         -> SendEmailPayload
     {
         switch self {

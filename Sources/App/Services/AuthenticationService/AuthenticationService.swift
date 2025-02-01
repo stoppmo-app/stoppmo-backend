@@ -22,7 +22,7 @@ struct AuthenticationService {
 
     /// Send login code email to user email and save sent email to database.
     /// - Parameter email: User email to send code to.
-    /// - Throws: Throws an error if user reached email sent rate limit or email did not send successfully.
+    /// - Throws: Throws an error if user reached email sent rate limit, email did not send or save.
     /// - Returns: A `SendAuthCodeResponse` containing data like the email sent, auth code used and response from email sent using email client.
     public func sendLoginCode(email: String) async throws
         -> SendAuthCodeResponse
@@ -32,7 +32,7 @@ struct AuthenticationService {
 
     /// Send register code email to user email and save sent email to database.
     /// - Parameter email: User email to send code to.
-    /// - Throws: Throws an error if account with email already exists, user reached email sent rate limit or email did not send successfully.
+    /// - Throws: Throws an error if account with email already exists, user reached email sent rate limit, email did not send or save.
     /// - Returns: A `SendAuthCodeResponse` containing data like the email sent, auth code used and response from email sent using email client.
     public func sendRegisterCode(email: String) async throws
         -> SendAuthCodeResponse
@@ -69,7 +69,7 @@ struct AuthenticationService {
     ///   - code: Code to send inside the email.
     ///
     /// - Throws:
-    /// - Throws: Throws an error if `authCodeType` is `register` and account with email already exists, user reached email sent rate limit or email did not send successfully.
+    /// - Throws: Throws an error if `authCodeType` is `register` and account with email already exists, user reached email sent rate limit, email did not send or save.
     /// - Returns: A `SendAuthCodeResponse` containing data like the email sent, auth code used and response from email sent using email client.
     private func sendAuthCode(
         email: String, authCodeType: AuthCodeType, code: Int? = nil
@@ -86,14 +86,30 @@ struct AuthenticationService {
         )
     }
 
+    /// A helper method that gets first gets auth email data, then send and save the email.
+    /// - Parameters:
+    ///   - code: Auth code number.
+    ///   - email: Email address auth code email will be sent to.
+    ///   - authCodeType: Authentication code type (register or login).
+    ///   - emailMessageType: Type of email user wants to receive.
+    ///
+    /// - Throws: Throws an erorr when email did not send or save.
+    /// - Returns: A `SendAuthCodeResponse` containing data like the email sent, auth code used and response from email sent using email client.
     private func sendAuthCodeEmail(
         code: Int?, email: String, authCodeType: AuthCodeType, emailMessageType: EmailMessageType
     ) async throws -> SendAuthCodeResponse {
-        let data = try await getSendAuthCodeEmailData(
+        let data = getSendAuthCodeEmailData(
             code: code, email: email, authCodeType: authCodeType)
         return try await sendAuthCodeEmailFromData(data: data, emailMessageType: emailMessageType)
     }
 
+    /// Helper method that sends and save email to user using `ZohoMailClient` and `SendAuthCodeEmailData` as input.
+    /// - Parameters:
+    ///   - data: Data required to send and save
+    ///   - emailMessageType: Type of email message (`authCreateAccount` for register and `authLogin` for login)
+    ///
+    /// - Throws: Throws an erorr when email did not send or save.
+    /// - Returns: A `SendAuthCodeResponse` containing data like the email sent, auth code used and response from email sent using email client.
     private func sendAuthCodeEmailFromData(
         data: SendAuthCodeEmailData, emailMessageType: EmailMessageType
     ) async throws
@@ -112,15 +128,22 @@ struct AuthenticationService {
         )
     }
 
+    /// Helper method that gets data for send auth code email.
+    /// - Parameters:
+    ///   - code: Auth code number.
+    ///   - email: Email address auth code email will be sent to.
+    ///   - authCodeType: Authentication code type (register or login).
+    ///
+    /// - Returns: A `SendAuthCodeEmailData`, an object that contains all data necessary for sending email to user.
     private func getSendAuthCodeEmailData(code: Int?, email: String, authCodeType: AuthCodeType)
-        async throws -> SendAuthCodeEmailData
+        -> SendAuthCodeEmailData
 
     {
         let senderType: EmailSenderType = .authentication
         let authCode = code ?? Int.random(in: 0..<100_000)
 
         let fromAddress = senderType.getSenderEmail()
-        let payload = try await SendEmailPayload.fromTemplate(
+        let payload = SendEmailPayload.fromTemplate(
             template: .authCode(code: authCode),
             fromAddress: fromAddress,
             toAddress: email,
@@ -129,6 +152,12 @@ struct AuthenticationService {
         return .init(sendEmailPayload: payload, authCode: authCode, senderType: senderType)
     }
 
+    /// Helper method that validates no user exists with a specific email when sending auth code for register, throwing an error on fail.
+    /// - Parameters:
+    ///   - authCodeType:
+    ///   - email:
+    ///
+    /// - Throws:
     private func validateEmailForRegister(authCodeType: AuthCodeType, email: String)
         async throws
     {
@@ -138,6 +167,12 @@ struct AuthenticationService {
 
     }
 
+    /// A helper method that checks if user with email `email` can receive an auth email or throw an error if not.
+    /// - Parameters:
+    ///   - email: Email of user.
+    ///   - emailMessageType: Type of email user wants to receive.
+    ///
+    /// - Throws: Throws an error if user reached rate limit.
     private func canSendAuthEmailOrThrow(email: String, emailMessageType: EmailMessageType)
         async throws
     {
