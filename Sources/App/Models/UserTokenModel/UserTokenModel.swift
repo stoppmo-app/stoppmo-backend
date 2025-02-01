@@ -42,7 +42,13 @@ final class UserTokenModel: Model, Content, @unchecked Sendable {
         $user.id = userID
     }
 
-    func isTokenValid() -> Bool {
+    public func isTokenValid() -> Bool {
         expiresAt >= Date()
+    }
+
+    public func validateIsTokenValid() throws {
+        if self.isTokenValid() == false {
+            throw Abort(.custom(code: 401, reasonPhrase: "Bearer token expired."))
+        }
     }
 }

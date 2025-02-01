@@ -145,6 +145,39 @@ struct AuthenticationService {
         }
     }
 
+    /// Validate authentication code, save user on register, authenticate user by generating and returning token with user data.
+    /// - Parameters:
+    ///   - user: User who wants to login.
+    ///   - code: Authentication code sent to user email.
+    ///   - codeType: Authentication type (register or login)
+    ///
+    /// - Throws: Throws an error when code is invalid or token did not save successfully.
+    /// - Returns: A `BearerTokenWithUserDTO` containing the user's data and the generated bearer token for authentication.
+    private func authenticate(
+        user: UserModel, code: Int, codeType: AuthCodeType
+    )
+        async throws -> BearerTokenWithUserDTO
+    {
+        let userEmail = user.email
+        let authCode = try await getAuthCodeOrThrow(code, email: userEmail, codeType: .register)
+        try await validateAuthCode(authCode)
+
+        var userID: UUID
+        if codeType == .register {
+            try await user.save(on: database)
+            userID = try user.requireID()
+            try await deleteAllRegisterAuthCodes(email: userEmail)
+        } else {
+            userID = try user.requireID()
+            try await deleteAllAuthCodes(id: userID)
+        }
+
+        let token = generateBearerToken(id: userID)
+        try await token.save(on: database)
+
+        return .init(token: token.value, user: user.toDTO())
+    }
+
     /// Validate login code, login user by generating and return bearer token with user data.
     /// - Parameters:
     ///   - user: User who wants to login.
@@ -153,16 +186,7 @@ struct AuthenticationService {
     /// - Throws: Throws an error when code is invalid or token did not save successfully.
     /// - Returns: A `BearerTokenWithUserDTO` containing the user's data and the generated bearer token for authentication.
     public func login(user: UserModel, authCode code: Int) async throws -> BearerTokenWithUserDTO {
-        let authCode = try await getAuthCode(code, email: user.email, codeType: .login)
-        try await validateAuthCode(authCode)
-
-        let userID = try user.requireID()
-        try await deleteAllAuthCodes(id: userID)
-
-        let token = generateBearerToken(id: userID)
-        try await token.save(on: database)
-
-        return .init(token: token.value, user: user.toDTO())
+        return try await authenticate(user: user, code: code, codeType: .login)
     }
 
     /// Validate register code, save user to database, register user by generating and returning bearer token with user data.
@@ -177,18 +201,7 @@ struct AuthenticationService {
         let userEmail = user.email
         try await validateUniqueEmail(email: userEmail)
 
-        let authCode = try await getAuthCode(code, email: userEmail, codeType: .register)
-        try await validateAuthCode(authCode)
-
-        try await user.save(on: database)
-        let userID = try user.requireID()
-
-        try await deleteAllRegisterAuthCodes(email: user.email)
-
-        let token = generateBearerToken(id: userID)
-        try await token.save(on: database)
-
-        return .init(token: token.value, user: user.toDTO())
+        return try await authenticate(user: user, code: code, codeType: .register)
     }
 
     /// Helper method that checks if authentication code is expired.
@@ -248,7 +261,7 @@ struct AuthenticationService {
     ///
     /// - Throws: Throws an error when code does not exist or issue finding it in database.
     /// - Returns: A`AuthenticationCodeModel`, the authentication code.
-    private func getAuthCode(_ code: Int, email: String, codeType: AuthCodeType)
+    private func getAuthCodeOrThrow(_ code: Int, email: String, codeType: AuthCodeType)
         async throws -> AuthenticationCodeModel
     {
         guard
@@ -294,9 +307,7 @@ struct AuthenticationService {
         -> UserModel
     {
         let token = try await getBearerToken(bearer.token)
-        if token.isTokenValid() == false {
-            throw Abort(.custom(code: 401, reasonPhrase: "Bearer token expired."))
-        }
+        try token.validateIsTokenValid()
         return try await token.$user.get(on: database)
     }
 
@@ -364,16 +375,11 @@ struct AuthenticationService {
 
     /// Delete all bearer tokens in database for a specific user.
     /// - Parameter userID: ID of user.
-    /// - Throws: Throws an error when there is a problem getting all tokens from database or deleting an specific token.
+    /// - Throws: Throws an error when there is a problem querying and deleting all tokens.
     private func deleteAllBearerTokens(for userID: UUID) async throws {
-        let tokens =
-            try await UserTokenModel
+        try await UserTokenModel
             .query(on: database)
             .filter(\.$user.$id == userID)
-            .all()
-
-        for token in tokens {
-            try await token.delete(on: database)
-        }
+            .delete()
     }
 }
