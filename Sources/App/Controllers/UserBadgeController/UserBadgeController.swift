@@ -52,9 +52,12 @@ struct UserBadgeController: RouteCollection {
             throw Abort(.notFound)
         }
 
-        return try await UserBadgeModel.query(on: req.db).filter(
-            "user_id", .equal, userID
-        ).all().map { $0.toDTO() }
+        return
+            try await UserBadgeModel
+            .query(on: req.db)
+            .filter(\.$user.$id == userID)
+            .all()
+            .map { $0.toDTO() }
     }
 
     @Sendable
@@ -95,7 +98,10 @@ struct UserBadgeController: RouteCollection {
             throw Abort(.notFound)
         }
 
-        return try await UserBadgeModel.query(on: req.db).filter(\.$badge.$id, .equal, badgeID)
+        return
+            try await UserBadgeModel
+            .query(on: req.db)
+            .filter(\.$badge.$id == badgeID)
             .all()
             .map {
                 $0.toDTO()

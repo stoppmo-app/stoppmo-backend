@@ -53,7 +53,7 @@ struct AuthenticationController: RouteCollection {
         return .ok
     }
 
-    /// Validate register code, create user account in database, generate and return bearer token with user data on success.
+    /// Validate register code, create user account in database, register user by generatin and returning bearer token with user data.
     /// - Parameter req: The request object.
     /// - Throws: Throws an error if code validation or user creation fails.
     /// - Returns: A `BearerTokenWithUserDTO` containing the user's data and the generated bearer token for authentication.
@@ -99,7 +99,7 @@ struct AuthenticationController: RouteCollection {
         return .ok
     }
 
-    /// Validate login code, generate and return bearer token with user data on success.
+    /// Validate login code, login user by generating and returning bearer token with user data.
     /// - Parameter req: The request object.
     /// - Throws: Throws an error if login code validation fails.
     /// - Returns: A `BearerTokenWithUserDTO` containing the user's data and the generated bearer token for authentication.

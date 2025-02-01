@@ -57,7 +57,7 @@ struct ZohoMailClient {
         let user =
             try await UserModel
             .query(on: database)
-            .filter(\.$email, .equal, email)
+            .filter(\.$email == email)
             .field(\.$id)
             .first()
         let id = try? user?.requireID()
