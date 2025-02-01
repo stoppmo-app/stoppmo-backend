@@ -7,9 +7,10 @@ import Fluent
 import Vapor
 
 // TODO: add rate limit logic for the amount of login and register attempts a user can make to avoid brute-forcing login by spamming
-// routes with authentication codes (bypass TFA, which is a security risk if a user accidentally leaked email and password)
+// routes with authentication codes (bypass TFA, which is a security risk if a user accidentally leaked email and password).
 
-// TODO: Evaluate whether it is even necessary to implement this: 👇
+// TODO: Add useful logging statements, ensure error handling is useful and consistent throughout the module.
+// TODO: Evaluate whether it is even necessary to implement this: 👇.
 // TODO: Have different authentication codes specifically for a specific device, to avoid soft deleting codes that another device generated
 // (which can cause problems logging into app on different devices at the same time).
 
@@ -271,7 +272,7 @@ struct AuthenticationService {
     ///
     /// - Throws:
     public func logout(user userID: UUID, req: Request) async throws {
-        try await removeOldBearerTokens(for: userID)
+        try await deleteAllBearerTokens(for: userID)
         req.auth.logout(UserModel.self)
     }
 
@@ -285,35 +286,69 @@ struct AuthenticationService {
         )
     }
 
+    /// Get `UserModel` object from `BearerAuthorization`, an object found in `UserBearerAuthenticator`.
+    /// - Parameter bearer: Bearer token object found from request in `UserBearerAuthenticator`middleware.
+    /// - Throws: Throws an error when token is expired.
+    /// - Returns: A `UserModel` - the user object, the owner of the bearer token.
     public func getUserFromBearerAuthorization(_ bearer: BearerAuthorization) async throws
         -> UserModel
     {
         let token = try await getBearerToken(bearer.token)
         if token.isTokenValid() == false {
-            throw Abort(.custom(code: 401, reasonPhrase: "Token Expired"))
+            throw Abort(.custom(code: 401, reasonPhrase: "Bearer token expired."))
         }
         return try await token.$user.get(on: database)
     }
 
+    /// Get `UserModel` object from `BasicAuthorization`, an object found in `UserBasicAuthenticator`.
+    /// - Parameter basic: Basic object containing username and password found from request in `UserBasicAuthenticator` middleware.
+    /// - Throws: Throws an error when account with username does not exist or when password is incorrect.
+    /// - Returns: A `UserModel` - the user whose username and password matches with email and password in `basic` parameter.
     public func getUserFromBasicAuthorization(_ basic: BasicAuthorization) async throws -> UserModel
     {
+        // Avoid being too descriptive, use generic error messages to avoid exposing too much information in database.
+        let errorMessageOnInvalidCredentials =
+            "Incorrect username and/or password. Verify credentials and try again."
+        let user = try await validateAndGetUserFromUsername(
+            basic.username, userNotFoundErrorMessage: errorMessageOnInvalidCredentials)
+        if try Bcrypt.verify(basic.password, created: user.passwordHash) {
+            return user
+        } else {
+            throw Abort(
+                .custom(
+                    code: 401,
+                    reasonPhrase: errorMessageOnInvalidCredentials
+                )
+            )
+        }
+    }
+
+    /// A helper method that validates and gets `UserModel` object from passed in `username` parameter.
+    /// - Parameters:
+    ///   - username: Username of user.
+    ///   - userNotFoundErrorMessage: `reasonPhrase` on abort error when user with `username` does not exist in database.
+    ///
+    /// - Throws: Throws an error when user with `username` does not exist in database.
+    /// - Returns: A `UserModel`, the user object where the username matches the passed in `username`.
+    private func validateAndGetUserFromUsername(
+        _ username: String, userNotFoundErrorMessage: String
+    ) async throws -> UserModel {
         guard
             let user =
                 try await UserModel
                 .query(on: database)
-                .filter(\.$username == basic.username)
+                .filter(\.$username == username)
                 .first()
         else {
-            throw Abort(.notFound)
+            throw Abort(.custom(code: 404, reasonPhrase: userNotFoundErrorMessage))
         }
-        let passwordCorrect = try Bcrypt.verify(basic.password, created: user.passwordHash)
-        if passwordCorrect == true {
-            return user
-        } else {
-            throw Abort(.unauthorized)
-        }
+        return user
     }
 
+    /// Get `UserTokenModel` from bearer token string.
+    /// - Parameter token: Token string.
+    /// - Throws: Throws an error when token does not exist in database.
+    /// - Returns: A `UserToken`, the bearer token object where `token` matches the object value.
     private func getBearerToken(_ token: String) async throws -> UserTokenModel {
         guard
             let userToken =
@@ -322,12 +357,15 @@ struct AuthenticationService {
                 .filter(\.$value == token)
                 .first()
         else {
-            throw Abort(.custom(code: 401, reasonPhrase: "Token Not Found"))
+            throw Abort(.custom(code: 404, reasonPhrase: "Bearer token not found."))
         }
         return userToken
     }
 
-    private func removeOldBearerTokens(for userID: UUID) async throws {
+    /// Delete all bearer tokens in database for a specific user.
+    /// - Parameter userID: ID of user.
+    /// - Throws: Throws an error when there is a problem getting all tokens from database or deleting an specific token.
+    private func deleteAllBearerTokens(for userID: UUID) async throws {
         let tokens =
             try await UserTokenModel
             .query(on: database)

@@ -38,12 +38,12 @@ struct AuthenticationController: RouteCollection {
         )
 
         let userEmail = try req.content.decode(SendRegisterCodePayload.self).email
-        let sendLoginCodeResponse = try await authService.sendRegisterCode(
+        let sendRegisterCodeResponse = try await authService.sendRegisterCode(
             email: userEmail
         )
 
-        let authCode = sendLoginCodeResponse.authCode
-        let sentEmailMessageID = try sendLoginCodeResponse.savedEmail.requireID()
+        let authCode = sendRegisterCodeResponse.authCode
+        let sentEmailMessageID = try sendRegisterCodeResponse.savedEmail.requireID()
 
         try await authService.saveAuthCode(
             code: authCode, userEmail: userEmail, sentEmailMessageID: sentEmailMessageID,
