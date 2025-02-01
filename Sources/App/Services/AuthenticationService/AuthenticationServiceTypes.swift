@@ -41,7 +41,7 @@ struct SendAuthCodeResponse: Content {
     let sentEmailZohoMailResponse: SendZohoMailEmailResponse
 }
 
-struct LoginAndRegisterQuery: Content, Validatable {
+struct RegisterAndLoginQueryParameters: Content, Validatable {
     let authCode: Int
 
     enum CodingKeys: String, CodingKey {

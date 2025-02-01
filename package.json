@@ -1,7 +1,7 @@
 {
-    "name": "stoppmo-backend",
+    "name": "StopPMO Core",
     "version": "1.0.0",
-    "description": "Main backend for StopPMO IOS App.",
+    "description": "Main codebase for StopPMO.",
     "scripts": {
         "dev": "npm-run-all --sequential dev:stop dev:buildAndStart:detach dev:attach",
         "dev:stop": "docker compose down app_dev",
@@ -45,7 +45,11 @@
         "prod:buildAndStart:detach": "npm run prod:buildAndStart -- -d",
         "prod:attach": "docker compose attach app"
     },
-    "keywords": [],
+    "keywords": [
+        "ios",
+        "swift",
+        "vapor"
+    ],
     "author": "williamFernsV3",
     "license": "ISC",
     "devDependencies": {
