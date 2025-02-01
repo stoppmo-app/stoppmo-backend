@@ -77,39 +77,75 @@ struct AuthenticationService {
         async throws
         -> SendAuthCodeResponse
     {
-        let emailRateLimitService = RateLimitService.emailsService(
-            .init(database: database, logger: logger)
-        )
         let emailMessageType = try authCodeType.toEmailMessageType(logger: logger)
-        try await emailRateLimitService.authEmailsSent(
-            email: email, messageType: emailMessageType
+        try await canSendAuthEmailOrThrow(email: email, emailMessageType: emailMessageType)
+
+        try await validateEmailForRegister(authCodeType: authCodeType, email: email)
+        return try await sendAuthCodeEmail(
+            code: code, email: email, authCodeType: authCodeType, emailMessageType: emailMessageType
         )
+    }
 
-        if authCodeType == .register {
-            try await uniqueEmailOrThrow(email: email)
-        }
+    private func sendAuthCodeEmail(
+        code: Int?, email: String, authCodeType: AuthCodeType, emailMessageType: EmailMessageType
+    ) async throws -> SendAuthCodeResponse {
+        let data = try await getSendAuthCodeEmailData(
+            code: code, email: email, authCodeType: authCodeType)
+        return try await sendAuthCodeEmailFromData(data: data, emailMessageType: emailMessageType)
+    }
 
+    private func sendAuthCodeEmailFromData(
+        data: SendAuthCodeEmailData, emailMessageType: EmailMessageType
+    ) async throws
+        -> SendAuthCodeResponse
+    {
         let emailClient = ZohoMailClient(database: database, client: client, logger: logger)
+        let sendEmailResponse = try await emailClient.sendEmail(
+            senderType: .authentication,
+            payload: data.sendEmailPayload,
+            messageType: emailMessageType
+        )
+        let savedEmail = try await emailClient.saveEmail(sendEmailResponse.emailMessage)
+        return .init(
+            savedEmail: savedEmail, authCode: data.authCode,
+            sentZohoMailEmailResponse: sendEmailResponse.sentZohoMailResponse
+        )
+    }
+
+    private func getSendAuthCodeEmailData(code: Int?, email: String, authCodeType: AuthCodeType)
+        async throws -> SendAuthCodeEmailData
+
+    {
         let senderType: EmailSenderType = .authentication
         let authCode = code ?? Int.random(in: 0..<100_000)
 
         let fromAddress = senderType.getSenderEmail()
-        let sendEmailPayload = try await SendEmailPayload.fromTemplate(
+        let payload = try await SendEmailPayload.fromTemplate(
             template: .authCode(code: authCode),
             fromAddress: fromAddress,
             toAddress: email,
             authType: authCodeType
         )
+        return .init(sendEmailPayload: payload, authCode: authCode, senderType: senderType)
+    }
 
-        let sendEmailResponse = try await emailClient.sendEmail(
-            senderType: senderType,
-            payload: sendEmailPayload,
-            messageType: emailMessageType
+    private func validateEmailForRegister(authCodeType: AuthCodeType, email: String)
+        async throws
+    {
+        if authCodeType == .register {
+            try await uniqueEmailOrThrow(email: email)
+        }
+
+    }
+
+    private func canSendAuthEmailOrThrow(email: String, emailMessageType: EmailMessageType)
+        async throws
+    {
+        let emailRateLimitService = RateLimitService.emailsService(
+            .init(database: database, logger: logger)
         )
-        let savedEmail = try await emailClient.saveEmail(sendEmailResponse.emailMessage)
-        return .init(
-            savedEmail: savedEmail, authCode: authCode,
-            sentZohoMailEmailResponse: sendEmailResponse.sentZohoMailResponse
+        try await emailRateLimitService.authEmailsSent(
+            email: email, messageType: emailMessageType
         )
     }
 
@@ -133,8 +169,8 @@ struct AuthenticationService {
 
     /// Authentication code is valid for login in or register or throw an error.
     /// - Parameter authCode: Authentication code to validate.
-    /// - Throws: Throws an error if code is expired or a new code was generated
-    private func validateAuthCodeValidOrThrow(_ authCode: AuthenticationCodeModel)
+    /// - Throws: Throws an error if database query fails when calling `isAuthCodeLatest`, code is expired or a new code was generated.
+    private func authCodeValidOrThrow(_ authCode: AuthenticationCodeModel)
         async throws
     {
         let codeExpired = isAuthCodeExpired(authCode.expiresAt)
@@ -160,7 +196,7 @@ struct AuthenticationService {
     {
         let userEmail = user.email
         let authCode = try await getAuthCodeOrThrow(code, email: userEmail, codeType: .register)
-        try await validateAuthCodeValidOrThrow(authCode)
+        try await authCodeValidOrThrow(authCode)
 
         var userID: UUID
         if codeType == .register {
