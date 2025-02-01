@@ -86,7 +86,7 @@ struct AuthenticationService {
         )
 
         if authCodeType == .register {
-            try await validateUniqueEmail(email: email)
+            try await uniqueEmailOrThrow(email: email)
         }
 
         let emailClient = ZohoMailClient(database: database, client: client, logger: logger)
@@ -113,10 +113,10 @@ struct AuthenticationService {
         )
     }
 
-    /// Validate no user exists with a specific email.
+    /// No user exists with a specific email or throw an error.
     /// - Parameter email: Email to validate.
     /// - Throws: An error if user exists with email.
-    private func validateUniqueEmail(email: String) async throws {
+    private func uniqueEmailOrThrow(email: String) async throws {
         if try await UserModel
             .query(on: database)
             .filter(\.$email == email)
@@ -131,10 +131,10 @@ struct AuthenticationService {
         }
     }
 
-    /// Validates whether authentication code is valid for login in or register.
+    /// Authentication code is valid for login in or register or throw an error.
     /// - Parameter authCode: Authentication code to validate.
     /// - Throws: Throws an error if code is expired or a new code was generated
-    private func validateAuthCode(_ authCode: AuthenticationCodeModel)
+    private func validateAuthCodeValidOrThrow(_ authCode: AuthenticationCodeModel)
         async throws
     {
         let codeExpired = isAuthCodeExpired(authCode.expiresAt)
@@ -160,7 +160,7 @@ struct AuthenticationService {
     {
         let userEmail = user.email
         let authCode = try await getAuthCodeOrThrow(code, email: userEmail, codeType: .register)
-        try await validateAuthCode(authCode)
+        try await validateAuthCodeValidOrThrow(authCode)
 
         var userID: UUID
         if codeType == .register {
@@ -199,7 +199,7 @@ struct AuthenticationService {
     public func register(user: UserModel, authCode code: Int) async throws -> BearerTokenWithUserDTO
     {
         let userEmail = user.email
-        try await validateUniqueEmail(email: userEmail)
+        try await uniqueEmailOrThrow(email: userEmail)
 
         return try await authenticate(user: user, code: code, codeType: .register)
     }
@@ -253,7 +253,7 @@ struct AuthenticationService {
             .delete()
     }
 
-    /// Get authentication code from database.
+    /// Get authentication code from database or throw an error.
     /// - Parameters:
     ///   - code: Code number.
     ///   - email: Email this code was sent to.
@@ -307,7 +307,7 @@ struct AuthenticationService {
         -> UserModel
     {
         let token = try await getBearerToken(bearer.token)
-        try token.validateIsTokenValid()
+        try token.validOrThrow()
         return try await token.$user.get(on: database)
     }
 
@@ -320,7 +320,7 @@ struct AuthenticationService {
         // Avoid being too descriptive, use generic error messages to avoid exposing too much information in database.
         let errorMessageOnInvalidCredentials =
             "Incorrect username and/or password. Verify credentials and try again."
-        let user = try await validateAndGetUserFromUsername(
+        let user = try await getUserFromUsernameOrThrow(
             basic.username, userNotFoundErrorMessage: errorMessageOnInvalidCredentials)
         if try Bcrypt.verify(basic.password, created: user.passwordHash) {
             return user
@@ -334,14 +334,14 @@ struct AuthenticationService {
         }
     }
 
-    /// A helper method that validates and gets `UserModel` object from passed in `username` parameter.
+    /// Get `UserModel` object from passed in `username` parameter or throw an error.
     /// - Parameters:
     ///   - username: Username of user.
     ///   - userNotFoundErrorMessage: `reasonPhrase` on abort error when user with `username` does not exist in database.
     ///
     /// - Throws: Throws an error when user with `username` does not exist in database.
     /// - Returns: A `UserModel`, the user object where the username matches the passed in `username`.
-    private func validateAndGetUserFromUsername(
+    private func getUserFromUsernameOrThrow(
         _ username: String, userNotFoundErrorMessage: String
     ) async throws -> UserModel {
         guard
