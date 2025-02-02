@@ -488,7 +488,8 @@ struct AuthenticationService {
 
         let userID = try getUserIDOrThrowForAuth(user: user, authType: codeType)
         try await deleteAllAuthCodesForAuthType(codeType, userID: userID, user: user)
-        let token = try await generateAndSaveToken(userID: userID, user: user, codeType: codeType)
+        let token = try await generateAndSaveTokenForAuth(
+            userID: userID, user: user, codeType: codeType)
 
         logger.info(
             "Authentication success.",
@@ -524,10 +525,9 @@ struct AuthenticationService {
         return userID
     }
 
-    private func generateAndSaveToken(userID: UUID, user: UserModel, codeType: AuthCodeType)
+    private func generateAndSaveTokenForAuth(userID: UUID, user: UserModel, codeType: AuthCodeType)
         async throws -> UserTokenModel
     {
-
         let token = generateBearerToken(id: userID, codeType: codeType)
 
         do {
@@ -597,7 +597,7 @@ struct AuthenticationService {
                 try await user.save(on: database)
             } catch {
                 logger.error(
-                    "Save registerd user to database failed: error when making a query to database.",
+                    "Save registered user to database failed: error when making a query to database.",
                     metadata: [
                         "to": .string("\(String(describing: Self.self)).\(#function)"),
                         "error": .string(error.localizedDescription),
