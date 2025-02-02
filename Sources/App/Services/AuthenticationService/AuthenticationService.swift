@@ -9,9 +9,14 @@ import Vapor
 // TODO: add rate limit logic for the amount of login and register attempts a user can make to avoid brute-forcing login by spamming
 // routes with authentication codes (bypass TFA, which is a security risk if a user accidentally leaked email and password).
 
-// TODO: add snippet for logging statement with ability to quickly choose method and "to" (possibly even auto-adding the "to") value.
+// TODO: Go through all code and make sure there aren't any logical mistakes, make sure errors doesn't expose unnecessary information nor
+// ignores necessary information by just throwing an `internalServerError` when it shouldn't.
+
+// TODO: Make sure errors are included in catch block logs.
+
 // TODO: Add useful logging statements, ensure error handling is useful and consistent throughout the module.
-// TODO: refactor all logging statements to use JSON for metadata instead of logging it as one line (easier to read). Look at brothers codebase before doing it.
+// TODO: refactor all logging statements to use JSON for metadata instead of logging it as one line (easier to read).
+// TODO: Look at how brother is handling errors and logs in the main methods and helper methods, and the relation between them.
 
 // TODO: Evaluate whether it is even necessary to implement this: 👇.
 // TODO: Have different authentication codes specifically for a specific device, to avoid soft deleting codes that another device generated
@@ -58,18 +63,43 @@ struct AuthenticationService {
     )
         async throws
     {
-        let messageSuffix =
-            "auth code '\(code)' for user with email '\(userEmail)' of auth code type '\(authCodeType.rawValue)' to database"
         logger.info(
-            "Saving \(messageSuffix)..."
+            "Save authentication code started.",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+                "code": .stringConvertible(code),
+                "userEmail": .string(userEmail),
+                "authCodeType": .string(authCodeType.rawValue),
+            ]
         )
+
         let authCode = AuthenticationCodeModel(
             value: code, email: userEmail, emailMessageID: sentEmailMessageID,
             codeType: authCodeType, userID: userID
         )
-        try await authCode.save(on: database)
+
+        do {
+            try await authCode.save(on: database)
+        } catch {
+            logger.error(
+                "Save authentication code failed: error saving code to database.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "error": .string(error.localizedDescription),
+                    "code": .stringConvertible(code),
+                    "userEmail": .string(userEmail),
+                    "authCodeType": .string(authCodeType.rawValue),
+                ]
+            )
+            throw Abort(.internalServerError)
+        }
+
         logger.info(
-            "Successfully saved \(messageSuffix)."
+            "Save authentication code success.",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+                "authCodeModel": .stringConvertible(authCode),
+            ]
         )
     }
 
@@ -88,16 +118,112 @@ struct AuthenticationService {
         async throws
         -> SendAuthCodeResponse
     {
-        let emailMessageType = try authCodeType.toEmailMessageType(logger: logger)
-        try await canSendAuthEmailOrThrow(email: email, emailMessageType: emailMessageType)
-
-        try await validateEmailForRegister(authCodeType: authCodeType, email: email)
-        return try await sendAuthCodeEmail(
-            code: code, email: email, authCodeType: authCodeType, emailMessageType: emailMessageType
+        // TODO: change errors for helper methods to not throw generic errors,
+        // but to include a `reasonPhrase` (so that the error description for the logs in this function
+        // is more descriptive, not relying on just tracking the logs for this request).
+        logger.info(
+            "Send authentication code to user started.",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+                "email": .string(email),
+                "authCodeType": .string(authCodeType.rawValue),
+            ]
         )
+
+        var emailMessageType: EmailMessageType
+        do {
+            emailMessageType = try authCodeType.toEmailMessageType(logger: logger)
+            logger.info(
+                "Got email message type from authentication code type successfully.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "emailMessageType": .string(emailMessageType.rawValue),
+                    "email": .string(email),
+                    "authCodeType": .string(authCodeType.rawValue),
+                ]
+            )
+        } catch {
+            logger.error(
+                "Send authentication code to user email failed: could not convert auth code type to email message type.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "error": .string(error.localizedDescription),
+                    "email": .string(email),
+                    "authCodeType": .string(authCodeType.rawValue),
+                ]
+            )
+            throw Abort(.internalServerError)
+        }
+
+        do {
+            try await canSendAuthEmailOrThrow(email: email, emailMessageType: emailMessageType)
+            logger.info(
+                "User may receive authentication code email - rate limit not reached.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "email": .string(email),
+                    "emailMessageType": .string(emailMessageType.rawValue),
+                    "authCodeType": .string(authCodeType.rawValue),
+                ]
+            )
+        } catch {
+            logger.error(
+                "Send authentication code to user email failed: rate limit restrictions does not allow user to get email.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "error": .string(error.localizedDescription),
+                    "email": .string(email),
+                    "emailMessageType": .string(emailMessageType.rawValue),
+                    "authCodeType": .string(authCodeType.rawValue),
+                ]
+            )
+            throw Abort(.tooManyRequests)
+        }
+
+        do {
+            try await validateEmailForRegister(authCodeType: authCodeType, email: email)
+        } catch {
+            logger.info(
+                "Send authentication code to user email failed: email not valid for account registration.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "error": .string(error.localizedDescription),
+                    "email": .string(email),
+                    "emailMessageType": .string(emailMessageType.rawValue),
+                    "authCodeType": .string(authCodeType.rawValue),
+                ]
+            )
+            throw error
+        }
+
+        do {
+            let sendAndSaveEmailResponse = try await sendAndSaveAuthCodeEmail(
+                code: code, email: email, authCodeType: authCodeType,
+                emailMessageType: emailMessageType
+            )
+            logger.info(
+                "Send and save authentication code to user email success.",
+                metadata: [
+                    "sendAndSaveEmailResponse": .string("\(sendAndSaveEmailResponse)")
+                ]
+            )
+            return sendAndSaveEmailResponse
+        } catch {
+            logger.error(
+                "Send authentication code to user email failed: error sending and saving email to user using email client.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "error": .string(error.localizedDescription),
+                    "email": .string(email),
+                    "emailMessageType": .string(emailMessageType.rawValue),
+                    "authCodeType": .string(authCodeType.rawValue),
+                ]
+            )
+            throw Abort(.internalServerError)
+        }
     }
 
-    /// A helper method that gets first gets auth email data, then send and save the email.
+    /// A helper method that gets authentication email data then send and save the email.
     /// - Parameters:
     ///   - code: Auth code number.
     ///   - email: Email address auth code email will be sent to.
@@ -106,12 +232,13 @@ struct AuthenticationService {
     ///
     /// - Throws: Throws an erorr when email did not send or save.
     /// - Returns: A `SendAuthCodeResponse` containing data like the email sent, auth code used and response from email sent using email client.
-    private func sendAuthCodeEmail(
+    private func sendAndSaveAuthCodeEmail(
         code: Int?, email: String, authCodeType: AuthCodeType, emailMessageType: EmailMessageType
     ) async throws -> SendAuthCodeResponse {
         let data = createSendAuthCodeEmailData(
             code: code, email: email, authCodeType: authCodeType)
-        return try await sendAuthCodeEmailFromData(data: data, emailMessageType: emailMessageType)
+        return try await sendAndSaveAuthCodeEmailFromData(
+            data: data, emailMessageType: emailMessageType)
     }
 
     /// Helper method that sends and save email to user using `ZohoMailClient` and `SendAuthCodeEmailData` as input.
@@ -121,7 +248,7 @@ struct AuthenticationService {
     ///
     /// - Throws: Throws an erorr when email did not send or save.
     /// - Returns: A `SendAuthCodeResponse` containing data like the email sent, auth code used and response from email sent using email client.
-    private func sendAuthCodeEmailFromData(
+    private func sendAndSaveAuthCodeEmailFromData(
         data: SendAuthCodeEmailData, emailMessageType: EmailMessageType
     ) async throws
         -> SendAuthCodeResponse
@@ -153,10 +280,14 @@ struct AuthenticationService {
         let senderType: EmailSenderType = .authentication
         let authCode = code ?? Int.random(in: 0..<100_000)
 
-        let messageSuffix =
-            "data for send auth code email data with code '\(authCode)', email '\(email)' and auth code type '\(authCodeType.rawValue)'"
         logger.info(
-            "Create \(messageSuffix)..."
+            "Create data for send auth code email started.",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+                "code": .stringConvertible(authCode),
+                "email": .string(email),
+                "authCodeType": .string(authCodeType.rawValue),
+            ]
         )
 
         let fromAddress = senderType.getSenderEmail()
@@ -168,8 +299,15 @@ struct AuthenticationService {
         )
         let data: SendAuthCodeEmailData = .init(
             sendEmailPayload: payload, authCode: authCode, senderType: senderType)
+
         logger.info(
-            "Successfully created \(messageSuffix)..."
+            "Create data for send auth code email success.",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+                "code": .stringConvertible(authCode),
+                "email": .string(email),
+                "authCodeType": .string(authCodeType.rawValue),
+            ]
         )
         return data
     }
@@ -184,7 +322,7 @@ struct AuthenticationService {
         async throws
     {
         if authCodeType == .register {
-            try await uniqueEmailOrThrow(email: email)
+            try await uniqueEmailOrThrow(email: email, authType: authCodeType)
         }
 
     }
@@ -207,17 +345,39 @@ struct AuthenticationService {
     }
 
     /// No user exists with a specific email or throw an error.
-    /// - Parameter email: Email to validate.
+    /// - Parameters:
+    ///   - email: Email to validate.
+    ///   - authType: Authentication type (register or login).
+    ///
     /// - Throws: An error if user exists with email.
-    private func uniqueEmailOrThrow(email: String) async throws {
-        if try await UserModel
-            .query(on: database)
-            .filter(\.$email == email)
-            .count() > 0
-        {
+    private func uniqueEmailOrThrow(email: String, authType: AuthCodeType) async throws {
+        var isUnique: Bool
+        do {
+            isUnique =
+                try await UserModel
+                .query(on: database)
+                .filter(\.$email == email)
+                .count() == 0
+        } catch {
+            logger.error(
+                "Unique email validation failed: error when making a query to database.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "email": .string(email),
+                    "authType": .string(authType.rawValue),
+                ]
+            )
+            throw Abort(.internalServerError)
+        }
 
+        if isUnique == false {
             logger.info(
-                "Unique email validation failed: email '\(email)' is not unique. A user already exists with the same email."
+                "Unique email validation failed: email is not unique (user already exist with the same email).",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "email": .string(email),
+                    "authType": .string(authType.rawValue),
+                ]
             )
             throw Abort(
                 .custom(
@@ -225,8 +385,14 @@ struct AuthenticationService {
                 )
             )
         }
+
         logger.info(
-            "Unique email validation success: email '\(email)' is unique. A user does not exist with the same email."
+            "Unique email validation success: email is unique (user does not already exist with the same email).",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+                "email": .string(email),
+                "authType": .string(authType.rawValue),
+            ]
         )
     }
 
@@ -236,21 +402,60 @@ struct AuthenticationService {
     private func authCodeValidOrThrow(_ authCode: AuthenticationCodeModel)
         async throws
     {
-        let codeExpired = isAuthCodeExpired(authCode.expiresAt)
-        let newestCode = try await isAuthCodeTheLatest(authCode)
 
         let code = authCode.value
         let codeType = authCode.codeType.rawValue
         let userEmail = authCode.email
 
+        logger.info(
+            "Authentication code validation started.",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+                "code": .stringConvertible(code),
+                "codeType": .string(codeType),
+                "userEmail": .string(userEmail),
+            ]
+        )
+
+        let codeExpired = isAuthCodeExpired(authCode.expiresAt)
+        var newestCode: Bool
+        do {
+            newestCode = try await isAuthCodeTheLatest(authCode)
+        } catch {
+            logger.error(
+                "Authentication code validation failed: error checking if code is the latest.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "code": .stringConvertible(code),
+                    "error": .string(error.localizedDescription),
+                    "codeType": .string(codeType),
+                    "userEmail": .string(userEmail),
+                ]
+            )
+            throw Abort(.internalServerError)
+        }
+
         if codeExpired == true || newestCode == false {
             logger.info(
-                "Authentication code validation failed: code '\(code)' with auth type '\(codeType)' for user with email '\(userEmail)' expired."
+                "Authentication code validation failed: code expired.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "code": .stringConvertible(code),
+                    "codeType": .string(codeType),
+                    "userEmail": .string(userEmail),
+                ]
             )
             throw Abort(.custom(code: 401, reasonPhrase: "Authentication code expired."))
         }
+
         logger.info(
-            "Authentication code validation success: code '\(code)' with auth type '\(codeType)' for user with email '\(userEmail)' not expired."
+            "Authentication code validation success: code not expired.",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+                "code": .stringConvertible(code),
+                "codeType": .string(codeType),
+                "userEmail": .string(userEmail),
+            ]
         )
     }
 
@@ -258,7 +463,7 @@ struct AuthenticationService {
     /// - Parameters:
     ///   - user: User who wants to login.
     ///   - code: Authentication code sent to user email.
-    ///   - codeType: Authentication type (register or login)
+    ///   - codeType: Authentication type (register or login).
     ///
     /// - Throws: Throws an error when code is invalid or token did not save successfully.
     /// - Returns: A `BearerTokenWithUserDTO` containing the user's data and the generated bearer token for authentication.
@@ -267,26 +472,118 @@ struct AuthenticationService {
     )
         async throws -> BearerTokenWithUserDTO
     {
+        // TODO: improve error handling and logging.
+        // TODO: refactor code into helper methods to reduce function length.
         let userEmail = user.email
 
         logger.info(
-            "Authentication started: user with email '\(userEmail)' for auth type '\(codeType.rawValue)'."
+            "Authentication started.",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+                "user": .stringConvertible(user),
+                "authType": .string(codeType.rawValue),
+            ]
         )
 
-        let authCode = try await getAuthCodeOrThrow(code, email: userEmail, codeType: .register)
-        try await authCodeValidOrThrow(authCode)
+        var authCode: AuthenticationCodeModel
+        do {
+            authCode = try await getAuthCodeOrThrow(code, email: userEmail, codeType: codeType)
+        } catch {
+            logger.info(
+                "Authentication failed: could not get authentication code.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "error": .string(error.localizedDescription),
+                    "user": .stringConvertible(user),
+                    "authType": .string(codeType.rawValue),
+                ]
+            )
+            throw error
+        }
+
+        do {
+            try await authCodeValidOrThrow(authCode)
+        } catch {
+            logger.info(
+                "Authentication failed: auth code validation failed.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "error": .string(error.localizedDescription),
+                    "user": .stringConvertible(user),
+                    "authType": .string(codeType.rawValue),
+                ]
+            )
+            throw error
+        }
+
+        if codeType == .register {
+            logger.info(
+                "Save registered user to database started.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "user": .stringConvertible(user),
+                    "authType": .string(codeType.rawValue),
+                ]
+            )
+
+            do {
+                try await user.save(on: database)
+            } catch {
+                logger.error(
+                    "Save registerd user to database failed: error when making a query to database.",
+                    metadata: [
+                        "to": .string("\(String(describing: Self.self)).\(#function)"),
+                        "error": .string(error.localizedDescription),
+                        "user": .stringConvertible(user),
+                        "authType": .string(codeType.rawValue),
+                    ]
+                )
+                throw Abort(.internalServerError)
+            }
+
+            logger.info(
+                "Save registered user to database success.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "user": .stringConvertible(user),
+                    "authType": .string(codeType.rawValue),
+                ]
+            )
+        }
 
         var userID: UUID
-        let username = user.username
-        if codeType == .register {
-            logger.info("Saving registered user with username '\(username)' to database...")
-            try await user.save(on: database)
-            logger.info("Saved registered user with username '\(username)' to database.")
+        do {
             userID = try user.requireID()
-            try await deleteAllRegisterAuthCodes(email: userEmail)
-        } else {
-            userID = try user.requireID()
-            try await deleteAllAuthCodes(id: userID)
+        } catch {
+            logger.error(
+                "Authentication failed: cannot get ID from user model object. This should never happen.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "error": .string(error.localizedDescription),
+                    "user": .stringConvertible(user),
+                    "authType": .string(codeType.rawValue),
+                ]
+            )
+            throw Abort(.internalServerError)
+        }
+
+        do {
+            if codeType == .register {
+                try await deleteAllRegisterAuthCodes(email: userEmail)
+            } else {
+                try await deleteAllAuthCodes(id: userID)
+            }
+        } catch {
+            logger.error(
+                "Authentication failed: failed to delete all authentication codes for user.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "error": .string(error.localizedDescription),
+                    "user": .stringConvertible(user),
+                    "authType": .string(codeType.rawValue),
+                ]
+            )
+            throw Abort(.internalServerError)
         }
 
         let token = generateBearerToken(id: userID, codeType: codeType)
@@ -317,7 +614,13 @@ struct AuthenticationService {
         }
 
         logger.info(
-            "Authentication success: user with username '\(username)' for auth type '\(codeType.rawValue)'."
+            "Authentication success.",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+                "token": .stringConvertible(token),
+                "user": .stringConvertible(user),
+                "authType": .string(codeType.rawValue),
+            ]
         )
 
         return .init(token: token.value, user: user.toDTO())
@@ -344,9 +647,11 @@ struct AuthenticationService {
     public func register(user: UserModel, authCode code: Int) async throws -> BearerTokenWithUserDTO
     {
         let userEmail = user.email
-        try await uniqueEmailOrThrow(email: userEmail)
+        let authType: AuthCodeType = .register
 
-        return try await authenticate(user: user, code: code, codeType: .register)
+        try await uniqueEmailOrThrow(email: userEmail, authType: authType)
+
+        return try await authenticate(user: user, code: code, codeType: authType)
     }
 
     /// Helper method that checks if authentication code is expired.
@@ -367,11 +672,33 @@ struct AuthenticationService {
         // User cannot send:
         // - login code when account doesn't exist (basic authentication will fail).
         // - register code when an account already exists.
-        let isLatest =
-            try await AuthenticationCodeModel
-            .query(on: database)
-            .filter(\.$expiresAt > authCode.expiresAt)
-            .count() == 0
+        var isLatest: Bool
+
+        logger.info(
+            "Validate authentication code latest started.",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+                "authCode": .stringConvertible(authCode),
+            ]
+        )
+
+        do {
+            isLatest =
+                try await AuthenticationCodeModel
+                .query(on: database)
+                .filter(\.$expiresAt > authCode.expiresAt)
+                .count() == 0
+        } catch {
+            logger.error(
+                "Validate authentication code latest failed: error when making a query to database.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "authCode": .stringConvertible(authCode),
+                    "error": .string(error.localizedDescription),
+                ]
+            )
+            throw Abort(.internalServerError)
+        }
 
         logger.info(
             "Authentication code latest: \(isLatest). User email '\(authCode.email))' '\(authCode.codeType)'"
@@ -449,14 +776,31 @@ struct AuthenticationService {
             ]
         )
 
-        guard
-            let codeModel =
+        var codeModel: AuthenticationCodeModel?
+
+        do {
+            codeModel =
                 try await AuthenticationCodeModel
                 .query(on: database)
                 .filter(\.$value == code)
                 .filter(\.$email == email)
                 .filter(\.$codeType == codeType)
                 .first()
+        } catch {
+            logger.error(
+                "Get authentication code failed: error when making a query to database.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "error": .string(error.localizedDescription),
+                    "code": .stringConvertible(code),
+                    "email": .string(email),
+                    "codeType": .string(codeType.rawValue),
+                ]
+            )
+            throw Abort(.internalServerError)
+        }
+
+        guard let codeModelUnwrapped = codeModel
         else {
             logger.info(
                 "Get authentication code not found.",
@@ -474,11 +818,11 @@ struct AuthenticationService {
             "Get authentication code found.",
             metadata: [
                 "to": "\(String(describing: Self.self)).\(#function)",
-                "code": .stringConvertible(codeModel),
+                "code": .stringConvertible(codeModelUnwrapped),
             ]
         )
 
-        return codeModel
+        return codeModelUnwrapped
     }
 
     /// Logout user by removing all bearer tokens.
