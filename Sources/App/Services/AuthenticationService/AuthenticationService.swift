@@ -472,10 +472,8 @@ struct AuthenticationService {
     )
         async throws -> BearerTokenWithUserDTO
     {
-        // TODO: improve error handling and logging.
         // TODO: refactor code into helper methods to reduce function length.
-        let userEmail = user.email
-
+        // Make sure to not pass in unnecessary properties in other parts of the codebase.
         logger.info(
             "Authentication started.",
             metadata: [
@@ -485,6 +483,146 @@ struct AuthenticationService {
             ]
         )
 
+        try await getAndValidateAuthCode(code: code, user: user, codeType: codeType)
+        try await saveUserOnRegister(user: user, authType: codeType)
+
+        let userID = try getUserIDOrThrowForAuth(user: user, authType: codeType)
+        try await deleteAllAuthCodesForAuthType(codeType, userID: userID, user: user)
+        let token = try await generateAndSaveToken(userID: userID, user: user, codeType: codeType)
+
+        logger.info(
+            "Authentication success.",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+                "token": .stringConvertible(token),
+                "user": .stringConvertible(user),
+                "authType": .string(codeType.rawValue),
+            ]
+        )
+
+        return .init(token: token.value, user: user.toDTO())
+    }
+
+    private func getUserIDOrThrowForAuth(user: UserModel, authType: AuthCodeType) throws
+        -> UUID
+    {
+        var userID: UUID
+        do {
+            userID = try user.requireID()
+        } catch {
+            logger.error(
+                "Authentication failed: cannot get ID from user model object. This should never happen.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "error": .string(error.localizedDescription),
+                    "user": .stringConvertible(user),
+                    "authType": .string(authType.rawValue),
+                ]
+            )
+            throw Abort(.internalServerError)
+        }
+        return userID
+    }
+
+    private func generateAndSaveToken(userID: UUID, user: UserModel, codeType: AuthCodeType)
+        async throws -> UserTokenModel
+    {
+
+        let token = generateBearerToken(id: userID, codeType: codeType)
+
+        do {
+            try await token.save(on: database)
+            logger.info(
+                "Bearer token saved success.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "token": .stringConvertible(token),
+                    "user": .stringConvertible(user),
+                    "authType": .string(codeType.rawValue),
+                ]
+            )
+        } catch {
+            logger.error(
+                "Authentication failed: error saving bearer token to database.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "error": .string(error.localizedDescription),
+                    "token": .stringConvertible(token),
+                    "user": .stringConvertible(user),
+                    "authType": .string(codeType.rawValue),
+                ]
+            )
+            throw Abort(.internalServerError)
+        }
+        return token
+    }
+
+    private func deleteAllAuthCodesForAuthType(
+        _ codeType: AuthCodeType, userID: UUID, user: UserModel
+    ) async throws {
+        do {
+            if codeType == .register {
+                try await deleteAllRegisterAuthCodes(email: user.email)
+            } else {
+                try await deleteAllAuthCodes(id: userID)
+            }
+        } catch {
+            logger.error(
+                "Authentication failed: failed to delete all authentication codes for user.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "error": .string(error.localizedDescription),
+                    "user": .stringConvertible(user),
+                    "authType": .string(codeType.rawValue),
+                ]
+            )
+            throw Abort(.internalServerError)
+        }
+    }
+
+    private func saveUserOnRegister(user: UserModel, authType: AuthCodeType) async throws {
+        let authTypeString = authType.rawValue
+
+        if authType == .register {
+            logger.info(
+                "Save registered user to database started.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "user": .stringConvertible(user),
+                    "authType": .string(authTypeString),
+                ]
+            )
+
+            do {
+                try await user.save(on: database)
+            } catch {
+                logger.error(
+                    "Save registerd user to database failed: error when making a query to database.",
+                    metadata: [
+                        "to": .string("\(String(describing: Self.self)).\(#function)"),
+                        "error": .string(error.localizedDescription),
+                        "user": .stringConvertible(user),
+                        "authType": .string(authTypeString),
+                    ]
+                )
+                throw Abort(.internalServerError)
+            }
+
+            logger.info(
+                "Save registered user to database success.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "user": .stringConvertible(user),
+                    "authType": .string(authTypeString),
+                ]
+            )
+        }
+    }
+
+    private func getAndValidateAuthCode(code: Int, user: UserModel, codeType: AuthCodeType)
+        async throws
+    {
+        let userEmail = user.email
         var authCode: AuthenticationCodeModel
         do {
             authCode = try await getAuthCodeOrThrow(code, email: userEmail, codeType: codeType)
@@ -515,115 +653,6 @@ struct AuthenticationService {
             )
             throw error
         }
-
-        if codeType == .register {
-            logger.info(
-                "Save registered user to database started.",
-                metadata: [
-                    "to": .string("\(String(describing: Self.self)).\(#function)"),
-                    "user": .stringConvertible(user),
-                    "authType": .string(codeType.rawValue),
-                ]
-            )
-
-            do {
-                try await user.save(on: database)
-            } catch {
-                logger.error(
-                    "Save registerd user to database failed: error when making a query to database.",
-                    metadata: [
-                        "to": .string("\(String(describing: Self.self)).\(#function)"),
-                        "error": .string(error.localizedDescription),
-                        "user": .stringConvertible(user),
-                        "authType": .string(codeType.rawValue),
-                    ]
-                )
-                throw Abort(.internalServerError)
-            }
-
-            logger.info(
-                "Save registered user to database success.",
-                metadata: [
-                    "to": .string("\(String(describing: Self.self)).\(#function)"),
-                    "user": .stringConvertible(user),
-                    "authType": .string(codeType.rawValue),
-                ]
-            )
-        }
-
-        var userID: UUID
-        do {
-            userID = try user.requireID()
-        } catch {
-            logger.error(
-                "Authentication failed: cannot get ID from user model object. This should never happen.",
-                metadata: [
-                    "to": .string("\(String(describing: Self.self)).\(#function)"),
-                    "error": .string(error.localizedDescription),
-                    "user": .stringConvertible(user),
-                    "authType": .string(codeType.rawValue),
-                ]
-            )
-            throw Abort(.internalServerError)
-        }
-
-        do {
-            if codeType == .register {
-                try await deleteAllRegisterAuthCodes(email: userEmail)
-            } else {
-                try await deleteAllAuthCodes(id: userID)
-            }
-        } catch {
-            logger.error(
-                "Authentication failed: failed to delete all authentication codes for user.",
-                metadata: [
-                    "to": .string("\(String(describing: Self.self)).\(#function)"),
-                    "error": .string(error.localizedDescription),
-                    "user": .stringConvertible(user),
-                    "authType": .string(codeType.rawValue),
-                ]
-            )
-            throw Abort(.internalServerError)
-        }
-
-        let token = generateBearerToken(id: userID, codeType: codeType)
-
-        do {
-            try await token.save(on: database)
-            logger.info(
-                "Bearer token saved success.",
-                metadata: [
-                    "to": .string("\(String(describing: Self.self)).\(#function)"),
-                    "token": .stringConvertible(token),
-                    "user": .stringConvertible(user),
-                    "authType": .string(codeType.rawValue),
-                ]
-            )
-        } catch {
-            logger.error(
-                "Authentication failed: error saving bearer token to database.",
-                metadata: [
-                    "to": .string("\(String(describing: Self.self)).\(#function)"),
-                    "error": .string(error.localizedDescription),
-                    "token": .stringConvertible(token),
-                    "user": .stringConvertible(user),
-                    "authType": .string(codeType.rawValue),
-                ]
-            )
-            throw Abort(.internalServerError)
-        }
-
-        logger.info(
-            "Authentication success.",
-            metadata: [
-                "to": .string("\(String(describing: Self.self)).\(#function)"),
-                "token": .stringConvertible(token),
-                "user": .stringConvertible(user),
-                "authType": .string(codeType.rawValue),
-            ]
-        )
-
-        return .init(token: token.value, user: user.toDTO())
     }
 
     /// Validate login code, login user by generating and return bearer token with user data.
