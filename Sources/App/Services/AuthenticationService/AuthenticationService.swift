@@ -9,7 +9,10 @@ import Vapor
 // TODO: add rate limit logic for the amount of login and register attempts a user can make to avoid brute-forcing login by spamming
 // routes with authentication codes (bypass TFA, which is a security risk if a user accidentally leaked email and password).
 
+// TODO: add snippet for logging statement with ability to quickly choose method and "to" (possibly even auto-adding the "to") value.
 // TODO: Add useful logging statements, ensure error handling is useful and consistent throughout the module.
+// TODO: refactor all logging statements to use JSON for metadata instead of logging it as one line (easier to read). Look at brothers codebase before doing it.
+
 // TODO: Evaluate whether it is even necessary to implement this: 👇.
 // TODO: Have different authentication codes specifically for a specific device, to avoid soft deleting codes that another device generated
 // (which can cause problems logging into app on different devices at the same time).
@@ -55,11 +58,19 @@ struct AuthenticationService {
     )
         async throws
     {
+        let messageSuffix =
+            "auth code '\(code)' for user with email '\(userEmail)' of auth code type '\(authCodeType.rawValue)' to database"
+        logger.info(
+            "Saving \(messageSuffix)..."
+        )
         let authCode = AuthenticationCodeModel(
             value: code, email: userEmail, emailMessageID: sentEmailMessageID,
             codeType: authCodeType, userID: userID
         )
         try await authCode.save(on: database)
+        logger.info(
+            "Successfully saved \(messageSuffix)."
+        )
     }
 
     /// Send authentication code email to user email and save email to database.
@@ -98,7 +109,7 @@ struct AuthenticationService {
     private func sendAuthCodeEmail(
         code: Int?, email: String, authCodeType: AuthCodeType, emailMessageType: EmailMessageType
     ) async throws -> SendAuthCodeResponse {
-        let data = getSendAuthCodeEmailData(
+        let data = createSendAuthCodeEmailData(
             code: code, email: email, authCodeType: authCodeType)
         return try await sendAuthCodeEmailFromData(data: data, emailMessageType: emailMessageType)
     }
@@ -128,19 +139,25 @@ struct AuthenticationService {
         )
     }
 
-    /// Helper method that gets data for send auth code email.
+    /// Helper method that creates correct data structur that will be used to send auth code email.
     /// - Parameters:
     ///   - code: Auth code number.
     ///   - email: Email address auth code email will be sent to.
     ///   - authCodeType: Authentication code type (register or login).
     ///
     /// - Returns: A `SendAuthCodeEmailData`, an object that contains all data necessary for sending email to user.
-    private func getSendAuthCodeEmailData(code: Int?, email: String, authCodeType: AuthCodeType)
+    private func createSendAuthCodeEmailData(code: Int?, email: String, authCodeType: AuthCodeType)
         -> SendAuthCodeEmailData
 
     {
         let senderType: EmailSenderType = .authentication
         let authCode = code ?? Int.random(in: 0..<100_000)
+
+        let messageSuffix =
+            "data for send auth code email data with code '\(authCode)', email '\(email)' and auth code type '\(authCodeType.rawValue)'"
+        logger.info(
+            "Create \(messageSuffix)..."
+        )
 
         let fromAddress = senderType.getSenderEmail()
         let payload = SendEmailPayload.fromTemplate(
@@ -149,7 +166,12 @@ struct AuthenticationService {
             toAddress: email,
             authType: authCodeType
         )
-        return .init(sendEmailPayload: payload, authCode: authCode, senderType: senderType)
+        let data: SendAuthCodeEmailData = .init(
+            sendEmailPayload: payload, authCode: authCode, senderType: senderType)
+        logger.info(
+            "Successfully created \(messageSuffix)..."
+        )
+        return data
     }
 
     /// Helper method that validates no user exists with a specific email when sending auth code for register, throwing an error on fail.
@@ -194,12 +216,18 @@ struct AuthenticationService {
             .count() > 0
         {
 
+            logger.info(
+                "Unique email validation failed: email '\(email)' is not unique. A user already exists with the same email."
+            )
             throw Abort(
                 .custom(
                     code: 409, reasonPhrase: "User already exists with email '\(email)'."
                 )
             )
         }
+        logger.info(
+            "Unique email validation success: email '\(email)' is unique. A user does not exist with the same email."
+        )
     }
 
     /// Authentication code is valid for login in or register or throw an error.
@@ -211,9 +239,19 @@ struct AuthenticationService {
         let codeExpired = isAuthCodeExpired(authCode.expiresAt)
         let newestCode = try await isAuthCodeTheLatest(authCode)
 
+        let code = authCode.value
+        let codeType = authCode.codeType.rawValue
+        let userEmail = authCode.email
+
         if codeExpired == true || newestCode == false {
+            logger.info(
+                "Authentication code validation failed: code '\(code)' with auth type '\(codeType)' for user with email '\(userEmail)' expired."
+            )
             throw Abort(.custom(code: 401, reasonPhrase: "Authentication code expired."))
         }
+        logger.info(
+            "Authentication code validation success: code '\(code)' with auth type '\(codeType)' for user with email '\(userEmail)' not expired."
+        )
     }
 
     /// Validate authentication code, save user on register, authenticate user by generating and returning token with user data.
@@ -230,12 +268,20 @@ struct AuthenticationService {
         async throws -> BearerTokenWithUserDTO
     {
         let userEmail = user.email
+
+        logger.info(
+            "Authentication started: user with email '\(userEmail)' for auth type '\(codeType.rawValue)'."
+        )
+
         let authCode = try await getAuthCodeOrThrow(code, email: userEmail, codeType: .register)
         try await authCodeValidOrThrow(authCode)
 
         var userID: UUID
+        let username = user.username
         if codeType == .register {
+            logger.info("Saving registered user with username '\(username)' to database...")
             try await user.save(on: database)
+            logger.info("Saved registered user with username '\(username)' to database.")
             userID = try user.requireID()
             try await deleteAllRegisterAuthCodes(email: userEmail)
         } else {
@@ -243,8 +289,36 @@ struct AuthenticationService {
             try await deleteAllAuthCodes(id: userID)
         }
 
-        let token = generateBearerToken(id: userID)
-        try await token.save(on: database)
+        let token = generateBearerToken(id: userID, codeType: codeType)
+
+        do {
+            try await token.save(on: database)
+            logger.info(
+                "Bearer token saved success.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "token": .stringConvertible(token),
+                    "user": .stringConvertible(user),
+                    "authType": .string(codeType.rawValue),
+                ]
+            )
+        } catch {
+            logger.error(
+                "Authentication failed: error saving bearer token to database.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "error": .string(error.localizedDescription),
+                    "token": .stringConvertible(token),
+                    "user": .stringConvertible(user),
+                    "authType": .string(codeType.rawValue),
+                ]
+            )
+            throw Abort(.internalServerError)
+        }
+
+        logger.info(
+            "Authentication success: user with username '\(username)' for auth type '\(codeType.rawValue)'."
+        )
 
         return .init(token: token.value, user: user.toDTO())
     }
@@ -293,10 +367,16 @@ struct AuthenticationService {
         // User cannot send:
         // - login code when account doesn't exist (basic authentication will fail).
         // - register code when an account already exists.
-        return try await AuthenticationCodeModel
+        let isLatest =
+            try await AuthenticationCodeModel
             .query(on: database)
             .filter(\.$expiresAt > authCode.expiresAt)
             .count() == 0
+
+        logger.info(
+            "Authentication code latest: \(isLatest). User email '\(authCode.email))' '\(authCode.codeType)'"
+        )
+        return isLatest
     }
 
     /// Delete all authentication codes for a specific user.
@@ -305,10 +385,22 @@ struct AuthenticationService {
     private func deleteAllAuthCodes(id userID: UUID)
         async throws
     {
-        try await AuthenticationCodeModel
-            .query(on: database)
-            .filter(\.$user.$id == userID)
-            .delete()
+        do {
+            try await AuthenticationCodeModel
+                .query(on: database)
+                .filter(\.$user.$id == userID)
+                .delete()
+        } catch {
+            logger.error(
+                "All authentication code deletion failed for user.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "error": .string(error.localizedDescription),
+                    "userID": .stringConvertible(userID),
+                ]
+            )
+            throw Abort(.internalServerError)
+        }
     }
 
     /// Delete all register authentication codes for a specific user.
@@ -317,11 +409,23 @@ struct AuthenticationService {
     private func deleteAllRegisterAuthCodes(email userEmail: String)
         async throws
     {
-        try await AuthenticationCodeModel
-            .query(on: database)
-            .filter(\.$email == userEmail)
-            .filter(\.$codeType == AuthCodeType.register)
-            .delete()
+        do {
+            try await AuthenticationCodeModel
+                .query(on: database)
+                .filter(\.$email == userEmail)
+                .filter(\.$codeType == AuthCodeType.register)
+                .delete()
+        } catch {
+            logger.error(
+                "All register code deletion failed for user with email '\(userEmail)'. Error: '\(error)'",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "error": .string(error.localizedDescription),
+                    "userEmail": .string(userEmail),
+                ]
+            )
+            throw Abort(.internalServerError)
+        }
     }
 
     /// Get authentication code from database or throw an error.
@@ -335,18 +439,46 @@ struct AuthenticationService {
     private func getAuthCodeOrThrow(_ code: Int, email: String, codeType: AuthCodeType)
         async throws -> AuthenticationCodeModel
     {
+        logger.info(
+            "Get authentication code started.",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+                "code": .stringConvertible(code),
+                "email": .string(email),
+                "codeType": .string(codeType.rawValue),
+            ]
+        )
+
         guard
-            let code =
+            let codeModel =
                 try await AuthenticationCodeModel
                 .query(on: database)
                 .filter(\.$value == code)
                 .filter(\.$email == email)
-                .filter(\.$codeType == codeType)  // make sure the generated code was created for the right auth type
+                .filter(\.$codeType == codeType)
                 .first()
         else {
+            logger.info(
+                "Get authentication code not found.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "code": .stringConvertible(code),
+                    "email": .string(email),
+                    "codeType": .string(codeType.rawValue),
+                ]
+            )
             throw Abort(.custom(code: 404, reasonPhrase: "Authentication code not found."))
         }
-        return code
+
+        logger.info(
+            "Get authentication code found.",
+            metadata: [
+                "to": "\(String(describing: Self.self)).\(#function)",
+                "code": .stringConvertible(codeModel),
+            ]
+        )
+
+        return codeModel
     }
 
     /// Logout user by removing all bearer tokens.
@@ -356,18 +488,57 @@ struct AuthenticationService {
     ///
     /// - Throws:
     public func logout(user userID: UUID, req: Request) async throws {
-        try await deleteAllBearerTokens(for: userID)
-        req.auth.logout(UserModel.self)
+        logger.info(
+            "Logout started for user.",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+                "userID": .stringConvertible(userID),
+                "logoutRequest": .stringConvertible(req),
+            ]
+        )
+        do {
+            try await deleteAllBearerTokens(for: userID)
+            req.auth.logout(UserModel.self)
+        } catch {
+            logger.error(
+                "Logout failed for user.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "userID": .stringConvertible(userID),
+                    "logoutRequest": .stringConvertible(req),
+                    "error": .string(error.localizedDescription),
+                ]
+            )
+            throw Abort(.internalServerError)
+        }
+        logger.info(
+            "Logout success for user.",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+                "userID": .stringConvertible(userID),
+                "logoutRequest": .stringConvertible(req),
+            ]
+        )
     }
 
     /// Generate a `UserToken` with a random value.
     /// - Parameter userID: ID of the user the token is for.
     /// - Returns: A `UserTokenModel`, the generated bearer token.
-    public func generateBearerToken(id userID: UUID) -> UserTokenModel {
-        .init(
-            value: [UInt8].random(count: 16).base64,
+    public func generateBearerToken(id userID: UUID, codeType: AuthCodeType) -> UserTokenModel {
+        let tokenValue = "\([UInt8].random(count: 16).base64).\(codeType.rawValue)"
+        let bearerToken: UserTokenModel = .init(
+            value: tokenValue,
             userID: userID
         )
+        logger.info(
+            "Generated bearer token model `UserTokenModel` for user successfully.",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+                "userTokenModel": .stringConvertible(bearerToken),
+                "userID": .stringConvertible(userID),
+            ]
+        )
+        return bearerToken
     }
 
     /// Get `UserModel` object from `BearerAuthorization`, an object found in `UserBearerAuthenticator`.
@@ -377,9 +548,45 @@ struct AuthenticationService {
     public func getUserFromBearerAuthorization(_ bearer: BearerAuthorization) async throws
         -> UserModel
     {
-        let token = try await getBearerToken(bearer.token)
-        try token.validOrThrow()
-        return try await token.$user.get(on: database)
+        var token: UserTokenModel
+        do {
+            token = try await getBearerToken(bearer.token)
+            try token.validOrThrow()
+        } catch {
+            logger.info(
+                "Get user from bearer authorization failed.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "error": .string(error.localizedDescription),
+                    "authenticationType": .string("bearer"),
+                ]
+            )
+            throw error
+        }
+        do {
+            let user = try await token.$user.get(on: database)
+            logger.info(
+                "Get user from bearer authorization success.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "user": .stringConvertible(user),
+                    "authenticationType": .string("bearer"),
+                    "userTokenModel": .stringConvertible(token),
+                ]
+            )
+            return user
+        } catch {
+            logger.error(
+                "Get user from bearer authorization failed: could not get user model from token.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "error": .string(error.localizedDescription),
+                    "authenticationType": .string("bearer"),
+                    "userTokenModel": .stringConvertible(token),
+                ]
+            )
+            throw Abort(.internalServerError)
+        }
     }
 
     /// Get `UserModel` object from `BasicAuthorization`, an object found in `UserBasicAuthenticator`.
@@ -388,14 +595,70 @@ struct AuthenticationService {
     /// - Returns: A `UserModel` - the user whose username and password matches with email and password in `basic` parameter.
     public func getUserFromBasicAuthorization(_ basic: BasicAuthorization) async throws -> UserModel
     {
-        // Avoid being too descriptive, use generic error messages to avoid exposing too much information in database.
+        // Avoid being too descriptive, use generic error messages to avoid exposing too much information.
         let errorMessageOnInvalidCredentials =
             "Incorrect username and/or password. Verify credentials and try again."
-        let user = try await getUserFromUsernameOrThrow(
-            basic.username, userNotFoundErrorMessage: errorMessageOnInvalidCredentials)
-        if try Bcrypt.verify(basic.password, created: user.passwordHash) {
+
+        var user: UserModel
+        do {
+            user = try await getUserFromUsernameOrThrow(
+                basic.username,
+                userNotFoundErrorMessage: errorMessageOnInvalidCredentials
+            )
+        } catch {
+            logger.info(
+                "Get user from basic authorization failed: could not get user from username.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "error": .string(error.localizedDescription),
+                    "password": .string(basic.password),
+                    "username": .string(basic.username),
+                    "authenticationType": .string("basic"),
+                ]
+            )
+            throw error
+        }
+        var passwordCorrect: Bool
+        do {
+            passwordCorrect = try Bcrypt.verify(basic.password, created: user.passwordHash)
+        } catch {
+            logger.error(
+                "Get user from basic authorization failed: error verifying password using `Bcrypt`.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "error": .string(error.localizedDescription),
+                    "user": .stringConvertible(user),
+                    "password": .string(basic.password),
+                    "username": .string(basic.username),
+                    "authenticationType": .string("basic"),
+                ]
+            )
+            throw Abort(.internalServerError)
+        }
+
+        if passwordCorrect == true {
+            logger.info(
+                "Get user from basic authorization success: password correct.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "user": .stringConvertible(user),
+                    "password": .string(basic.password),
+                    "username": .string(basic.username),
+                    "authenticationType": .string("basic"),
+                ]
+            )
             return user
         } else {
+            logger.info(
+                "Get user from basic authorization failed: password incorrect.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "user": .stringConvertible(user),
+                    "password": .string(basic.password),
+                    "username": .string(basic.username),
+                    "authenticationType": .string("basic"),
+                ]
+            )
             throw Abort(
                 .custom(
                     code: 401,
@@ -415,16 +678,47 @@ struct AuthenticationService {
     private func getUserFromUsernameOrThrow(
         _ username: String, userNotFoundErrorMessage: String
     ) async throws -> UserModel {
-        guard
-            let user =
+        var user: UserModel?
+        do {
+            user =
                 try await UserModel
                 .query(on: database)
                 .filter(\.$username == username)
                 .first()
+        } catch {
+            logger.error(
+                "Get user from username failed: error when making a query to database.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "error": .string(error.localizedDescription),
+                    "username": .string(username),
+                ]
+            )
+            throw Abort(.internalServerError)
+        }
+
+        guard
+            let unwrappedUser = user
         else {
+            logger.info(
+                "Get user from username failed: user not found with username.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "username": .string(username),
+                ]
+            )
             throw Abort(.custom(code: 404, reasonPhrase: userNotFoundErrorMessage))
         }
-        return user
+
+        logger.info(
+            "Get user from username success.",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+                "user": .stringConvertible(unwrappedUser),
+                "username": .string(username),
+            ]
+        )
+        return unwrappedUser
     }
 
     /// Get `UserTokenModel` from bearer token string.
@@ -432,25 +726,74 @@ struct AuthenticationService {
     /// - Throws: Throws an error when token does not exist in database.
     /// - Returns: A `UserToken`, the bearer token object where `token` matches the object value.
     private func getBearerToken(_ token: String) async throws -> UserTokenModel {
-        guard
-            let userToken =
+        var userToken: UserTokenModel?
+        do {
+            userToken =
                 try await UserTokenModel
                 .query(on: database)
                 .filter(\.$value == token)
                 .first()
+        } catch {
+            logger.error(
+                "Get user bearer token from token string failed: error when making a query to database.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "token": .string(token),
+                    "error": .string(error.localizedDescription),
+                ]
+            )
+            throw Abort(.internalServerError)
+        }
+
+        guard
+            let userTokenUnwrapped = userToken
         else {
+            logger.info(
+                "Get user bearer token from token string failed: token not found with value matching token string.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "token": .string(token),
+                ]
+            )
             throw Abort(.custom(code: 404, reasonPhrase: "Bearer token not found."))
         }
-        return userToken
+
+        logger.info(
+            "Get user bearer token from token string success.",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+                "token": .string(token),
+                "userTokenModel": .stringConvertible(userTokenUnwrapped),
+            ]
+        )
+        return userTokenUnwrapped
     }
 
     /// Delete all bearer tokens in database for a specific user.
     /// - Parameter userID: ID of user.
     /// - Throws: Throws an error when there is a problem querying and deleting all tokens.
     private func deleteAllBearerTokens(for userID: UUID) async throws {
-        try await UserTokenModel
-            .query(on: database)
-            .filter(\.$user.$id == userID)
-            .delete()
+        do {
+            try await UserTokenModel
+                .query(on: database)
+                .filter(\.$user.$id == userID)
+                .delete()
+
+            logger.info(
+                "Delete all bearer tokens for specific user success.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "userID": .stringConvertible(userID),
+                ]
+            )
+        } catch {
+            logger.error(
+                "Delete all bearer tokens for specific user failed: error when making a query to database.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "userID": .stringConvertible(userID),
+                ]
+            )
+        }
     }
 }

@@ -18,7 +18,7 @@ enum AuthCodeType: String, Codable {
         // Comment this in once there are more message type cases added
         // default:
         //     logger.error(
-        //         "Could not convert message type \(self.rawValue) to 'EmailMessageType' when sending auth code. This should never happen."
+        //         "Could not convert message type '\(self.rawValue)' to 'EmailMessageType' when sending auth code. This should never happen."
         //     )
         //     throw Abort(.internalServerError)
     }

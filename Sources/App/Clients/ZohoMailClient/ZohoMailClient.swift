@@ -136,7 +136,7 @@ struct ZohoMailClient {
             logger.error(
                 "Invalid Zoho access token, unable to refresh token successfully. Reached max retries for sending emails from sender type '\(senderType.rawValue)' to email '\(payload.toAddress)'."
             )
-            throw Abort(.custom(code: 500, reasonPhrase: "Max email send retries reached."))
+            throw Abort(.internalServerError)
         }
         return try await sendZohoEmail(
             senderType: senderType, payload: payload, maxRetries: maxRetries - 1,
